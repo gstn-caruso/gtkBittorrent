@@ -9,12 +9,23 @@ import tempfile
 import threading
 import unittest
 import urllib.parse
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+import testsession
 from testengineclient import ApiServer
 
 probe: Path
+engine: Path | None = None
+
+
+def runGtk(data: Mapping[str, Any]) -> subprocess.CompletedProcess[str]:
+    with tempfile.TemporaryDirectory(prefix="gtkbt-gtk-") as directory:
+        environment = dict(os.environ, G_DEBUG="fatal-criticals", GSK_RENDERER="cairo")
+        for name in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"):
+            environment[name] = str(Path(directory) / name)
+        return subprocess.run([str(probe)], input=json.dumps(data), env=environment, text=True, capture_output=True, timeout=25, check=False)  # nosec B603 # Explicit locally built GTK test binary.
 
 
 class TestGtk(unittest.TestCase):
@@ -50,15 +61,11 @@ class TestGtk(unittest.TestCase):
         thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
         thread.start()
         try:
-            with tempfile.TemporaryDirectory(prefix="gtkbt-gtk-") as directory:
-                environment = dict(os.environ, G_DEBUG="fatal-criticals", GSK_RENDERER="cairo")
-                for name in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"):
-                    environment[name] = str(Path(directory) / name)
-                data: dict[str, Any] = {"url": f"http://127.0.0.1:{server.server_port}/", "username": "baseline",
-                                        "password": password, "hash": identifier, "name": torrents[1]["name"]}
-                result = subprocess.run([str(probe)], input=json.dumps(data), env=environment, text=True, capture_output=True, timeout=25, check=False)  # nosec B603 # Explicit locally built GTK test binary.
-                self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-                self.assertTrue(json.loads(result.stdout)["passed"])
+            data: dict[str, Any] = {"url": f"http://127.0.0.1:{server.server_port}/", "username": "baseline",
+                                    "password": password, "hash": identifier, "name": torrents[1]["name"]}
+            result = runGtk(data)
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            self.assertTrue(json.loads(result.stdout)["passed"])
             self.assertEqual(commands, ["start", "stop"])
             self.assertEqual(torrents[0]["state"], "stoppedUP")
         finally:
@@ -66,10 +73,37 @@ class TestGtk(unittest.TestCase):
             thread.join(timeout=2)
             server.server_close()
 
+    def testNativeControlsDriveARealPartialDownload(self) -> None:
+        if engine is None:
+            self.skipTest("Run with --engine to exercise the actual headless engine")
+        testsession.binary = engine
+        with tempfile.TemporaryDirectory(prefix="gtkbt-gtk-session-") as directory:
+            session = testsession.Session(Path(directory))
+            try:
+                torrent, identifier, firstPiece = testsession.torrentFixture()
+                payload = session.destination / "archivo 日本語.bin"
+                payload.write_bytes(firstPiece + b"\x00" * 16384)
+                session.start()
+                session.login()
+                session.upload(torrent)
+                testsession.waitFor(session.torrents, lambda items: len(items) == 1)
+                result = runGtk({"url": session.url, "username": "baseline", "password": session.password,
+                                 "hash": identifier, "name": "archivo 日本語.bin", "count": 1, "started_state": "stalledDL"})
+                self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+                self.assertTrue(json.loads(result.stdout)["passed"])
+                restored = testsession.waitFor(session.torrents, lambda items: items[0]["state"] == "stoppedDL")[0]
+                self.assertEqual(restored["progress"], 0.5)
+                self.assertEqual(payload.read_bytes()[:16384], firstPiece)
+                self.assertIsNone(session.process.poll() if session.process is not None else 0)
+            finally:
+                session.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--probe", type=Path, required=True)
+    parser.add_argument("--engine", type=Path)
     arguments, remaining = parser.parse_known_args()
     probe = arguments.probe.resolve()
+    engine = arguments.engine.resolve() if arguments.engine is not None else None
     unittest.main(argv=[__file__, *remaining])

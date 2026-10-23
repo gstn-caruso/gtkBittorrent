@@ -24,9 +24,13 @@ if (BUILD_TESTING)
     add_executable(gtk_probe "../../test/gtk_probe.cpp")
     target_link_libraries(gtk_probe PRIVATE gtkbittorrent_gtk nlohmann_json::nlohmann_json)
     set_target_properties(gtk_probe PROPERTIES CXX_EXTENSIONS OFF)
+    set(gtkTestArgs --probe "$<TARGET_FILE:gtk_probe>")
+    if (ENGINE_TEST_BINARY)
+        list(APPEND gtkTestArgs --engine "${ENGINE_TEST_BINARY}")
+    endif()
     add_test(NAME testgtk
         COMMAND "${DBUS_RUN_SESSION}" -- "${XVFB_RUN}" -a "${Python3_EXECUTABLE}" -B
-            "${CMAKE_CURRENT_SOURCE_DIR}/../../test/testgtk.py" --probe "$<TARGET_FILE:gtk_probe>"
+            "${CMAKE_CURRENT_SOURCE_DIR}/../../test/testgtk.py" ${gtkTestArgs}
     )
     set_tests_properties(testgtk PROPERTIES LABELS "gtk;integration" TIMEOUT 60)
 endif()

@@ -87,7 +87,8 @@ int main(int argc, char **argv)
                             widget<Gtk::Button>(*window, "start-torrent").activate();
                             phase = 1;
                         }
-                        else if ((phase == 1) && (row->snapshot().state == input.value("started_state", "downloading")))
+                        else if ((phase == 1) && (row->snapshot().state == input.value("started_state", "downloading"))
+                                 && (row->snapshot().progress == input.value("progress", 0.5)))
                         {
                             widget<Gtk::Button>(*window, "stop-torrent").activate();
                             phase = 2;
