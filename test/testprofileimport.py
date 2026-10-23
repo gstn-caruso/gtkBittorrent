@@ -129,9 +129,11 @@ class TestProfileImport(unittest.TestCase):
         self.addCleanup(config.chmod, 0o700)
         result = self.runImport()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual((self.target / "config" / "gtkBittorrent.conf").read_bytes(), self.settings)
+        extension = ".ini" if sys.platform in ("win32", "darwin") else ".conf"
+        imported = self.target / "config" / ("gtkBittorrent" + extension)
+        self.assertEqual(imported.read_bytes(), self.settings)
         self.assertEqual(settings.stat().st_mode & 0o777, 0o400)
-        self.assertTrue((self.target / "config" / "gtkBittorrent.conf").stat().st_mode & 0o200)
+        self.assertTrue(imported.stat().st_mode & 0o200)
 
 
 if __name__ == "__main__":
