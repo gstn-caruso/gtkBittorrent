@@ -113,7 +113,7 @@ class TestEngineWorker(unittest.TestCase):
             torrent = Path(directory) / "fixture.torrent"
             torrent.write_bytes(b"metadata\x00\xff")
             events = self.invokeBlocked(stop=None, remove="a" * 40, magnet="magnet:?xt=urn:btih:" + "b" * 40,
-                                         torrent=str(torrent), save_path="/downloads/日本語")["events"]
+                                        torrent=str(torrent), save_path="/downloads/日本語")["events"]
             self.assertEqual([event["id"] for event in events if event["type"] == "accepted"], [1, 2, 3])
             self.assertIn(b"deleteFiles=false", self.server.requests[2][3])
             self.assertIn(torrent.read_bytes(), self.server.requests[6][3])

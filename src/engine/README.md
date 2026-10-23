@@ -25,9 +25,37 @@ JSON summary, including pending additions, and legacy empty/`Ok.` replies.
 An acknowledgement does not mean that asynchronous engine state has settled;
 the owner must keep refreshing snapshots.
 
-Process startup/shutdown, profile ownership, worker dispatch/events, preferences,
-and advanced feature coverage remain pending. These are required before the GTK
+Process startup/shutdown, profile ownership, preferences, and advanced feature
+coverage remain pending. These are required before the GTK
 client can replace the existing interface.
+
+## Worker and events
+
+`Worker` owns its authenticated `Client` on a dedicated C++ thread. Construction
+and `submit()` do not wait for network requests. Commands own their strings,
+identifiers, and uploaded bytes. `takeEvents()` transfers standard C++ values to
+the caller; GTK must consume them on its main thread. No callback accesses a
+widget from the worker.
+
+The worker authenticates once, publishes `Connected` and `Snapshot` events, and
+processes commands in FIFO order. `Accepted` means the HTTP operation was
+acknowledged; subsequent snapshots show asynchronous state changes. `Failure`
+includes a request ID (`0` for connection/poll failures), kind, HTTP status, and
+safe message. Individual server rejections leave the connection usable.
+Authentication, transport, or protocol failures stop processing and fail queued
+commands without replaying them. Reconnection requires a new worker.
+
+Only the newest pending snapshot is retained for slow consumers. A nonblocking
+`requestStop()` cancels queued work and wakes the polling wait. An in-flight
+request finishes or times out; the destructor joins the thread. GTK should keep
+retired workers until `finished()` before destroying them, or join after its main
+loop has stopped. Stopping this client never stops an externally owned engine
+process.
+
+Eight loopback worker tests cover the blocked-server boundary, request ordering,
+authentication failures, cancellation, idle shutdown, snapshot coalescing, and
+owned addition/removal payloads. Local address, undefined-behavior, and thread
+sanitizer runs pass. The CI workflow includes the same worker checks.
 
 ## Build and test without Qt
 

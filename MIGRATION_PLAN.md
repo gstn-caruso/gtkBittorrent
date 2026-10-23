@@ -1,6 +1,6 @@
 # GTK migration and continuous release plan
 
-Status: implementation in progress; Linux baseline, isolated fork identity, profile import, and a Qt-free engine client established.
+Status: implementation in progress; Linux baseline, isolated fork identity, profile import, and a Qt-free engine client/worker established.
 
 Assessment date: 2026-10-22.
 
@@ -25,6 +25,9 @@ delivered.
 - [x] Introduce a Qt-free C++ engine client and verify authentication, snapshots,
   torrent/magnet addition, start/stop, removal, and resumed partial downloads
   against disposable real-engine sessions on Linux.
+- [x] Add a Qt-free worker with value-based commands/events, FIFO results,
+  cancellation, snapshot coalescing, and nonblocking submission; pass local
+  address, undefined-behavior, and thread sanitizer checks.
 - [ ] Complete the remaining behavior baseline, including proxy/DNS handling.
 - [ ] Verify native Windows/macOS installations.
 - [ ] Complete release packaging, CI integration, and installed-package smoke
@@ -40,39 +43,45 @@ The resulting 18 MB package passed the real installed-runtime smoke suite for
 both applications. Its build manifest is retained outside documentation paths,
 which minimal Ubuntu images exclude. Publication tests cover retries,
 interrupted uploads, source/asset integrity, and tag collisions without network
-writes. The first manual GitHub run passed Linux package/installation, Ubuntu
-headless, Windows, file-health, and WebUI jobs; Ubuntu GUI analysis is still
-running. Python passed after its build-tool lookup fix. Native macOS builds
-passed the application/session checks but exposed a Linux suffix assumption in
-one importer test; that test has been corrected locally. No release has been
-published.
+writes. All seven push workflows for `e9a353126` passed on GitHub: Ubuntu,
+Windows, macOS, Python, WebUI, file-health, and engine-client security/sanitizer
+checks. The earlier manual release run also passed its Linux package and clean
+installation job; its Python/macOS failures were corrected and verified in the
+newer push runs. No release has been published yet.
 
 The [Qt-free engine client](src/engine/README.md) now has thirteen HTTP contract
 tests and a real-engine integration test. These pass with address/undefined
 behavior sanitizers and in the pinned release container. The public boundary
 uses standard C++ identifiers, snapshots, and errors; HTTP/JSON types remain
-private. CI now includes the standalone client checks and security analysis, and
-release builds exercise the client against the newly built engine. GTK widgets,
-worker events, process lifecycle/profile ownership, and advanced API operations
+private. Eight worker tests now verify blocked-server submission, FIFO command
+results, recoverable command errors, authentication failure, cancellation,
+snapshot coalescing, and owned torrent/magnet/removal payloads. All client and
+worker tests pass under address/undefined-behavior sanitizers; the worker tests
+also pass under ThreadSanitizer. CI now includes these checks and security
+analysis, and release builds exercise the client against the newly built engine.
+GTK widgets, process lifecycle/profile ownership, and advanced API operations
 remain pending; this does not complete stage 3.
 
-Resume by checking [manual run 39887360562](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39887360562)
-and newer push checks before dispatching the corrected full pipeline. Recheck
-the macOS test correction and the new standalone client workflow remotely.
-Do not restart jobs that are still running. Publication is skipped on `master`.
-After validating the pipeline, move the default branch to `main` and verify its
-first automatic prerelease. Preserve the full migration scope and use targeted
-tests for each change. The locally verified package records commit `229149f52`;
+The default-branch move and first automatic `main` release are being applied with
+this checkpoint. Resume by inspecting the remote default branch and the newest
+continuous-release run. Verify a downloadable prerelease with matching commit
+and checksums before marking the release stage complete. Do not restart jobs
+that are still running. The earlier [manual run](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39887360562)
+is terminal; the current source includes its verified fixes. Preserve the full
+migration scope and use targeted tests for each change. The locally verified
+package records commit `229149f52`;
 its desktop/session tests also use the explicit Web API enablement added after
 that packaging checkpoint. Build logs and artifacts are under
 `build/release-verified` and `build/release-runtime-*.log` when available. Inspect
 the worktree and remote state before continuing.
 
-The next independent implementation slice is the worker/event and process
-ownership layer, then a GTK window consuming this boundary. Keep network calls
-off GTK's main thread. The standalone client build is under `build/engine-client`,
+The next independent slice is a GTK window consuming the worker/events, followed
+by process/profile ownership and the remaining controls. Keep network calls off
+GTK's main thread; request worker stop without joining on an active UI thread.
+The standalone client build is under `build/engine-client`,
 sanitizer checks under `build/engine-client-sanitize`, and release-container
 client checks under `build/release-verified/client` when available.
+ThreadSanitizer checks are under `build/engine-client-tsan`.
 
 Keep this checkpoint current before context compaction so continuation does not
 depend on chat history. The migration remains in progress until all completion

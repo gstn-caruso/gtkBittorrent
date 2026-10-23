@@ -43,6 +43,13 @@ jobs:
             exit 1
           fi
 
+      - name: Check worker races
+        run: |
+          cmake -S src/engine -B build/client-tsan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-Wall -Wextra -Wpedantic -Werror -fsanitize=thread -fno-omit-frame-pointer"
+          cmake --build build/client-tsan --parallel 2
+          ctest --test-dir build/client-tsan -R testengineworker --output-on-failure
+
       - name: Initialize client CodeQL
         uses: github/codeql-action/init@v4
         with:
