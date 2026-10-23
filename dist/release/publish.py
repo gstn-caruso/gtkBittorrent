@@ -49,7 +49,7 @@ def verifyArtifacts(directory: Path, commit: str) -> dict[str, Asset]:
     if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
         raise ValueError("A full source commit SHA is required")
     paths = sorted(directory.iterdir())
-    if any(not path.is_file() or path.is_symlink() or re.fullmatch(r"[A-Za-z0-9._+~-]+", path.name) is None for path in paths):
+    if any(not path.is_file() or path.is_symlink() or re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._+-]*[A-Za-z0-9]", path.name) is None for path in paths):
         raise ValueError("Artifacts must be regular files with plain filenames")
     names = {path.name for path in paths}
     if not {"build-info.json", "SHA256SUMS"}.issubset(names) or not any(name.endswith(".deb") for name in names):
@@ -66,7 +66,7 @@ def verifyArtifacts(directory: Path, commit: str) -> dict[str, Asset]:
     expected = {path.name: fileAsset(path) for path in paths}
     checksums: dict[str, str] = {}
     for line in (directory / "SHA256SUMS").read_text(encoding="utf-8").splitlines():
-        match = re.fullmatch(r"([0-9a-f]{64})  ([A-Za-z0-9._+~-]+)", line)
+        match = re.fullmatch(r"([0-9a-f]{64})  ([A-Za-z0-9._+-]+)", line)
         if match is None or match[2] in checksums:
             raise ValueError("Invalid checksum manifest")
         checksums[match[2]] = "sha256:" + match[1]

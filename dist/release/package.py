@@ -100,7 +100,8 @@ def buildPackage(source: Path, stage: Path, output: Path, commit: str) -> Path:
             os.utime(path, (info.epoch, info.epoch), follow_symlinks=False)
         artifacts = work / "artifacts"
         artifacts.mkdir()
-        package = artifacts / f"gtkbittorrent_{info.version}_{architecture}.deb"
+        filenameVersion = info.version.replace("~", "-")
+        package = artifacts / f"gtkbittorrent_{filenameVersion}_{architecture}.deb"
         run(["dpkg-deb", "--build", "--root-owner-group", "--uniform-compression", "-Zxz", "-z6", str(root), str(package)], work, environment)
         (artifacts / "build-info.json").write_text(manifest, encoding="utf-8")
         checksums = [hashlib.sha256(path.read_bytes()).hexdigest() + "  " + path.name + "\n" for path in sorted(artifacts.iterdir())]

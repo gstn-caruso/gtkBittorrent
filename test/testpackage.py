@@ -75,6 +75,8 @@ class TestPackageSource(unittest.TestCase):
             shutil.copy2("/usr/bin/true", binaries / name)
         output = self.root / "output"
         package = buildPackage(self.source, stage, output, self.commit)
+        self.assertNotIn("~", package.name)
+        self.assertIn("5.4.0-alpha1+git.", package.name)
         fields = command("dpkg-deb", "--field", str(package), cwd=self.root)
         self.assertIn("Package: gtkbittorrent\n", fields)
         self.assertIn("Version: 5.4.0~alpha1+git." + self.commit, fields)

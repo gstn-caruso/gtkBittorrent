@@ -147,6 +147,13 @@ class TestRelease(unittest.TestCase):
         if self.api.release is not None:
             self.assertTrue(self.api.release.draft)
 
+    def testRejectAssetNamesThatGitHubWouldRewriteBeforeCreatingTag(self) -> None:
+        (self.artifacts / "gtkbittorrent.deb").rename(self.artifacts / "gtkbittorrent~alpha.deb")
+        self.writeChecksums()
+        with self.assertRaisesRegex(ValueError, "filenames"):
+            publishRelease(self.api, self.artifacts, COMMIT)
+        self.assertIsNone(self.api.tag)
+
 
 if __name__ == "__main__":
     unittest.main()
