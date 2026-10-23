@@ -19,6 +19,9 @@ delivered.
 - [x] Provide a Qt-free explicit profile importer; verify imported sessions with
   the real engine and confirm source profiles remain unchanged.
 - [x] Validate staged Linux installations and fork desktop metadata.
+- [x] Build an Ubuntu 26.04 amd64 release package in a container, install it in a
+  clean runtime without development dependencies, and pass import, identity,
+  transfer, persistence, and recovery checks against both installed applications.
 - [ ] Complete the remaining behavior baseline, including proxy/DNS handling.
 - [ ] Verify native Windows/macOS installations.
 - [ ] Complete release packaging, CI integration, and installed-package smoke
@@ -28,21 +31,24 @@ delivered.
 - [ ] Reach feature parity and remove Qt throughout the application and packages.
 
 Current checkpoint: [release tools](dist/release/README.md) provide a Linux build
-driver, Debian packager, and immutable prerelease publisher. Fourteen local tests
-pass, including a real fixture package build/extraction and repeated-packaging
-byte comparison. Publication tests cover retries, interrupted uploads,
-source/asset integrity, and tag collisions without network writes. The pinned
-Ubuntu build image builds successfully. These checks do not yet establish that
-the full application package or the GitHub pipeline works; no release has been
-published.
+driver, Debian packager, and immutable prerelease publisher. Fourteen local tool
+tests pass. Full container builds passed 26 desktop and 27 headless CTest entries.
+The resulting 18 MB package passed the real installed-runtime smoke suite for
+both applications. Its build manifest is retained outside documentation paths,
+which minimal Ubuntu images exclude. Publication tests cover retries,
+interrupted uploads, source/asset integrity, and tag collisions without network
+writes. The release workflow now gates publication on the adapted checks and
+installed-package tests; execution on GitHub remains unverified. No release has
+been published.
 
-Resume by building the full application in the release container, checking the
-installed package in a clean runtime container, and wiring publication behind
-the existing CI checks and package smoke tests. See the release tools guide for
-commands. Preserve the full migration scope and use targeted tests for each
-change. The current branch is `master`; the latest pushed checkpoint is
-`9bdebfb40` (isolated profiles and explicit import). Inspect the worktree before
-continuing.
+Resume by verifying a manual release-workflow run on `master` (publication is
+skipped there), then moving the default branch to `main` and verifying its first
+automatic prerelease. Preserve the full migration scope and use targeted tests
+for each change. The locally verified package records source commit `229149f52`;
+its desktop/session tests also use the explicit Web API enablement added after
+that packaging checkpoint. Build logs and artifacts are under
+`build/release-verified` and `build/release-runtime-*.log` when available. Inspect
+the worktree and remote state before continuing.
 
 Keep this checkpoint current before context compaction so continuation does not
 depend on chat history. The migration remains in progress until all completion
@@ -108,10 +114,10 @@ supports closed custom profiles and explicit configuration/data directories;
 real-engine tests verify imported legacy and SQLite sessions without modifying
 their sources. See the [import guide](src/profile/README.md).
 
-Linux installation metadata and the existing workflow executable paths have been
-adapted. Native Windows/macOS installation verification, the branch move, and
-automatic prereleases remain pending. Neither the desktop nor the torrent
-engine is Qt-free yet.
+Linux installation metadata, workflow executable paths, and the CI dependency
+chain have been adapted. Native Windows/macOS installation verification, actual
+GitHub workflow execution, the branch move, and automatic prereleases remain
+pending. Neither the desktop nor the torrent engine is Qt-free yet.
 
 ## Migration stages
 
@@ -227,14 +233,17 @@ Completion criteria:
 
 ## Existing CI
 
-Six GitHub Actions workflows run on both pushes and pull requests, without
-branch filters:
+Six existing check workflows are retained and reusable. The continuous-release
+workflow calls them for pushes to `main`; other branches and pull requests run
+the checks directly. Routine native builds use libtorrent 2.0.12, the version
+validated locally on Linux. The original wider version matrices run weekly or
+through manual dispatch with `full_matrix` enabled:
 
 | Workflow | Current work |
 | --- | --- |
-| [Ubuntu](.github/workflows/ci_ubuntu.yaml) | Six combinations: three libtorrent versions multiplied by GUI/headless; tests, C++ CodeQL, AppImages |
-| [macOS](.github/workflows/ci_macos.yaml) | Six combinations; tests and DMG packaging |
-| [Windows](.github/workflows/ci_windows.yaml) | Three x64 combinations; tests, packaged files, NSIS installers |
+| [Ubuntu](.github/workflows/ci_ubuntu.yaml) | GUI/headless; tests, C++ CodeQL, AppImages; six combinations in the wider matrix |
+| [macOS](.github/workflows/ci_macos.yaml) | GUI/headless; tests and DMG packaging; six combinations in the wider matrix |
+| [Windows](.github/workflows/ci_windows.yaml) | x64 tests, packaged files, NSIS installer; three combinations in the wider matrix |
 | [WebUI](.github/workflows/ci_webui.yaml) | Tests, lint, formatting, JavaScript CodeQL |
 | [Python](.github/workflows/ci_python.yaml) | Type checking, lint, formatting, compilation |
 | [File health](.github/workflows/ci_file_health.yaml) | Pre-commit checks, generated documentation checks, workflow analysis |
@@ -242,16 +251,18 @@ branch filters:
 There is also a scheduled stale-PR bot and Dependabot configuration. Reassess the
 stale bot separately from the build pipeline when adapting fork administration.
 
-These workflows upload build artifacts; they do not create GitHub Releases.
-GitHub reports Actions enabled for the fork and seven active workflows, but no
-workflow runs or commit checks have been returned after the pushes made so far.
-Successful execution of the checked-in workflows therefore remains unverified.
+The [continuous-release workflow](.github/workflows/release.yaml) builds a pinned
+Ubuntu package, tests its installed binaries in a separate runtime container,
+and publishes only after all required jobs succeed. Its manual trigger can
+validate other branches without publishing. Only the publishing job grants
+contents write permission, and main-branch runs are not cancelled by new pushes.
+At the last remote check, GitHub reported Actions enabled but returned no runs
+or commit checks after pushes. Successful execution remains unverified.
 
-Keep and adapt the existing checks. For routine builds, select one validated
-libtorrent version and retain the wider compatibility matrix on a schedule.
 Keep Python, WebUI, file-health, and security checks while those components remain.
 Replace Qt-specific build and packaging steps as their corresponding migration
-stages land.
+stages land. Native Windows/macOS execution must still validate the selected
+routine versions.
 
 ## Continuous release policy
 

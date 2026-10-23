@@ -1,0 +1,120 @@
+name: Continuous release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  python:
+    uses: ./.github/workflows/ci_python.yaml
+
+  webui:
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/ci_webui.yaml
+
+  file-health:
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/ci_file_health.yaml
+
+  ubuntu:
+    permissions:
+      contents: read
+      actions: write
+      security-events: write
+    uses: ./.github/workflows/ci_ubuntu.yaml
+
+  macos:
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/ci_macos.yaml
+
+  windows:
+    permissions:
+      contents: read
+      actions: write
+    uses: ./.github/workflows/ci_windows.yaml
+
+  package:
+    name: Linux package and installation tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build and test in the pinned Ubuntu environment
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          docker build -t gtkbittorrent-release:ci dist/release
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -v "$PWD:/source" -w /source gtkbittorrent-release:ci \
+            python3 -B -m dist.release.build --directory build/release \
+              --commit "$SOURCE_COMMIT" --jobs 2
+
+      - name: Install and exercise the actual package in a clean runtime
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          runtime_container="gtkbt-smoke-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          trap 'docker rm -f "$runtime_container"' EXIT
+          docker run --rm -d --name "$runtime_container" \
+            -v "$PWD:/source:ro" \
+            ubuntu@sha256:c098726dd9b9733f3e885f8de0ef375206a311b0a317eadc40d347b1115fb944 sleep infinity
+          docker exec "$runtime_container" apt-get update
+          docker exec "$runtime_container" sh -c \
+            'DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y python3 /source/build/release/artifacts/*.deb'
+          docker exec --user "$(id -u):$(id -g)" -w /source "$runtime_container" \
+            python3 -B -m dist.release.smoke --artifacts build/release/artifacts \
+              --commit "$SOURCE_COMMIT"
+
+      - name: Upload verified release files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ github.sha }}
+          path: build/release/artifacts/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish immutable prerelease
+    if: github.ref == 'refs/heads/main'
+    needs: [python, webui, file-health, ubuntu, macos, windows, package]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    concurrency:
+      group: publish-${{ github.sha }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-${{ github.sha }}
+          path: build/release-artifacts
+
+      - name: Publish checked assets for this exact source commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          python3 -B -m dist.release.publish --artifacts build/release-artifacts \
+            --repository "$REPOSITORY" --commit "$SOURCE_COMMIT"

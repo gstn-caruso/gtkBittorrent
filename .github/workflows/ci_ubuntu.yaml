@@ -1,11 +1,28 @@
 name: CI - Ubuntu
 
-on: [pull_request, push]
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_call:
+    inputs:
+      full_matrix:
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      full_matrix:
+        description: Run every supported libtorrent version
+        type: boolean
+        default: false
+  schedule:
+    - cron: "31 3 * * 1"
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ci-ubuntu-${{ github.head_ref || github.run_id }}
   cancel-in-progress: ${{ github.head_ref != '' }}
 
 jobs:
@@ -13,28 +30,17 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       actions: write
       security-events: write
 
     strategy:
       fail-fast: false
       matrix:
-        libtorrent:
-          - version: "2.1.2"
-            boost_major_version: "1"
-            boost_minor_version: "77"
-            boost_patch_version: "0"
-            libt_build_flags: ""
-          - version: "2.0.15"
-            boost_major_version: "1"
-            boost_minor_version: "77"
-            boost_patch_version: "0"
-            libt_build_flags: ""
-          - version: "1.2.20"
-            boost_major_version: "1"
-            boost_minor_version: "77"
-            boost_patch_version: "0"
-            libt_build_flags: ""
+        libtorrent: >-
+          ${{ fromJSON((github.event_name == 'schedule' || inputs.full_matrix)
+              && '[{"version":"2.1.2","boost_major_version":"1","boost_minor_version":"77","boost_patch_version":"0","libt_build_flags":""},{"version":"2.0.15","boost_major_version":"1","boost_minor_version":"77","boost_patch_version":"0","libt_build_flags":""},{"version":"1.2.20","boost_major_version":"1","boost_minor_version":"77","boost_patch_version":"0","libt_build_flags":""}]'
+              || '[{"version":"2.0.12","boost_major_version":"1","boost_minor_version":"77","boost_patch_version":"0","libt_build_flags":""}]') }}
         qbt_gui: ["GUI=ON", "GUI=OFF"]
         qt_version: ["6.6.3"]
 
@@ -59,7 +65,7 @@ jobs:
       - name: Setup ccache
         uses: Chocobo1/setup-ccache-action@v1
         with:
-          store_cache: ${{ (github.repository != 'qbittorrent/qBittorrent') || (github.ref == 'refs/heads/master') }}
+          store_cache: ${{ (github.repository != 'qbittorrent/qBittorrent') || (github.ref == 'refs/heads/main') }}
           update_packager_index: false
           ccache_options: |
             max_size=1G

@@ -1,11 +1,16 @@
 name: CI - WebUI
 
-on: [pull_request, push]
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_call:
 
-permissions: {}
+permissions:
+  contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ci-webui-${{ github.head_ref || github.run_id }}
   cancel-in-progress: ${{ github.head_ref != '' }}
 
 jobs:
@@ -13,6 +18,7 @@ jobs:
     name: Check
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       security-events: write
 
     defaults:

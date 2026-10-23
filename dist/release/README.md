@@ -27,11 +27,17 @@ must pass before installation into a shared staging tree. Packaging rejects
 dirty source trees, mismatched commits, and missing executables. Outputs are
 under `build/release-local/artifacts`: the `.deb`, `build-info.json`, and
 `SHA256SUMS`. The package also includes its source commit, build manifest, and
-license under `/usr/share/doc/gtkbittorrent`.
+license under `/usr/share/doc/gtkbittorrent`. The installed build manifest is in
+`/usr/share/gtkbittorrent`, where minimal Ubuntu images retain it even when they
+exclude documentation.
 
-Installation smoke tests must run in a separate clean runtime container and use
-the installed binaries, including the session/import integration tests. A build
-container alone does not prove that all runtime dependencies are packaged.
+The [release workflow](../../.github/workflows/release.yaml) installs the actual
+package in a separate clean runtime container without build dependencies. It
+runs the import safety tests and the identity/session integration tests against
+both installed desktop and headless binaries. Desktop tests use Qt's offscreen
+platform and explicitly enable the authenticated Web API in disposable profiles.
+A build container alone does not prove that all runtime dependencies are
+packaged.
 
 ## Publication
 
@@ -47,9 +53,13 @@ python3 -B -m dist.release.publish --artifacts build/release-local/artifacts \
 ```
 
 Publication requires an authenticated `gh` with repository contents permission.
-The CI publishing job must depend on all required checks and package smoke
-tests, and grant write permission only to publication. CI integration remains
-pending; running the local build does not publish a release.
+The CI publishing job depends on Python, WebUI, file-health, Ubuntu, macOS,
+Windows, and package smoke checks. Only publication grants contents write
+permission. Pushes to `main` run that workflow; manual dispatch can also validate
+other branches, where publication is skipped. Other push/PR checks remain
+available. The wider libtorrent compatibility matrices run weekly or through a
+manual dispatch with `full_matrix` enabled. Running the local build does not
+publish a release.
 
 ## Tool tests
 
