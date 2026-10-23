@@ -77,6 +77,17 @@ class TestEngineClient(unittest.TestCase):
         self.assertEqual(snapshot[:2], ("GET", "/api/v2/torrents/info"))
         self.assertEqual(snapshot[2]["Cookie"], "SID=private-session")
 
+    def testControlOnlyTheSelectedTorrentAndPreserveFilesByDefault(self) -> None:
+        self.server.responses = [(200, b"", {}), (200, b"", {}), (200, b"", {}), (200, b"", {}), (200, b"[]", {})]
+        identifier = "a" * 40
+        code, result = self.invoke(stop=identifier, start=identifier, remove=identifier)
+        self.assertEqual(code, 0, result)
+        self.assertEqual([(method, path) for method, path, _, _ in self.server.requests[1:]],
+                         [("POST", "/api/v2/torrents/stop"), ("POST", "/api/v2/torrents/start"),
+                          ("POST", "/api/v2/torrents/delete"), ("GET", "/api/v2/torrents/info")])
+        self.assertEqual(urllib.parse.parse_qs(self.server.requests[1][3].decode()), {"hashes": [identifier]})
+        self.assertEqual(urllib.parse.parse_qs(self.server.requests[3][3].decode()), {"hashes": [identifier], "deleteFiles": ["false"]})
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)

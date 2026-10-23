@@ -198,6 +198,21 @@ namespace Engine
 
     Client::~Client() = default;
 
+    void Client::start(const TorrentId &id)
+    {
+        m_impl->request("torrents/start", "hashes=" + id.value());
+    }
+
+    void Client::stop(const TorrentId &id)
+    {
+        m_impl->request("torrents/stop", "hashes=" + id.value());
+    }
+
+    void Client::remove(const TorrentId &id, const bool deleteFiles)
+    {
+        m_impl->request("torrents/delete", "hashes=" + id.value() + "&deleteFiles=" + (deleteFiles ? "true" : "false"));
+    }
+
     void Client::login(const std::string &username, const std::string &password)
     {
         check(curl_easy_setopt(m_impl->handle.get(), CURLOPT_COOKIELIST, "ALL"));

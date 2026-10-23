@@ -59,6 +59,9 @@ namespace Engine
 
         void login(const std::string &username, const std::string &password);
         std::vector<TorrentSnapshot> torrents();
+        void start(const TorrentId &id);
+        void stop(const TorrentId &id);
+        void remove(const TorrentId &id, bool deleteFiles);
 
     private:
         struct Impl;

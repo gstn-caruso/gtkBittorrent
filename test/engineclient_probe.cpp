@@ -13,6 +13,12 @@ int main()
         const json input = json::parse(std::cin);
         Engine::Client client(input.at("url").get<std::string>());
         client.login(input.at("username").get<std::string>(), input.at("password").get<std::string>());
+        if (input.contains("stop"))
+            client.stop(Engine::TorrentId(input.at("stop").get<std::string>()));
+        if (input.contains("start"))
+            client.start(Engine::TorrentId(input.at("start").get<std::string>()));
+        if (input.contains("remove"))
+            client.remove(Engine::TorrentId(input.at("remove").get<std::string>()), input.value("delete_files", false));
         json torrents = json::array();
         for (const Engine::TorrentSnapshot &torrent : client.torrents())
         {
