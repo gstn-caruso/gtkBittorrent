@@ -24,6 +24,7 @@ def build(source: Path, directory: Path, commit: str, jobs: int) -> Path:
             ["cmake", "-S", str(source), "-B", str(target), "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release",
              "-DCMAKE_INSTALL_PREFIX=/usr", "-DTESTING=ON", "-DGUI=" + ("ON" if gui else "OFF"),
              "-DSYSTEMD=" + ("OFF" if gui else "ON"),
+             "-DSYSTEMD_SERVICES_INSTALL_DIR=/usr/lib/systemd/system",
              f"-DCMAKE_CXX_FLAGS=-DQT_FORCE_ASSERTS -ffile-prefix-map={source}=/source -ffile-prefix-map={directory}=/build"],
             ["cmake", "--build", str(target), "--parallel", str(jobs)],
             ["ctest", "--test-dir", str(target), "--output-on-failure", "--parallel", str(jobs)],
