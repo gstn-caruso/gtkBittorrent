@@ -13,7 +13,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, cast
 
+import testsession
+
 probe: Path
+engine: Path | None = None
+
+
+def callProbe(data: dict[str, Any]) -> tuple[int, Any]:
+    result = subprocess.run([str(probe)], input=json.dumps(data), text=True, capture_output=True, timeout=5, check=False)  # nosec B603 # Explicit locally built test probe.
+    return result.returncode, json.loads(result.stdout)
 
 
 class ApiServer(ThreadingHTTPServer):
@@ -67,8 +75,7 @@ class TestEngineClient(unittest.TestCase):
 
     def invoke(self, **changes: Any) -> tuple[int, Any]:
         data = {"url": self.url, "username": "pruebas 日本語", "password": self.password, **changes}
-        result = subprocess.run([str(probe)], input=json.dumps(data), text=True, capture_output=True, timeout=5, check=False)  # nosec B603 # Explicit locally built test probe.
-        return result.returncode, json.loads(result.stdout)
+        return callProbe(data)
 
     def testAuthenticateAndReadUnicodeSnapshotWithoutLosingIntegerPrecision(self) -> None:
         torrent = {"hash": "a" * 40, "name": "archivo 日本語.bin", "size": 9007199254740993, "progress": 0.5, "state": "stoppedDL"}
@@ -153,33 +160,97 @@ class TestEngineClient(unittest.TestCase):
     def testAddMagnetWithUnicodeDestinationAndExplicitStoppedState(self) -> None:
         self.server.responses = [(200, b"", {}), (200, b"Ok.", {}), (200, b"[]", {})]
         magnet = "magnet:?xt=urn:btih:" + "a" * 40 + "&dn=日本語"
-        code, result = self.invoke(magnet=magnet, save_path="/tmp/descargas 日本語")
+        code, result = self.invoke(magnet=magnet, save_path="/downloads/descargas 日本語")
         self.assertEqual(code, 0, result)
         addition = self.server.requests[1]
         self.assertEqual(addition[:2], ("POST", "/api/v2/torrents/add"))
-        self.assertEqual(urllib.parse.parse_qs(addition[3].decode()), {"urls": [magnet], "savepath": ["/tmp/descargas 日本語"], "stopped": ["true"]})
+        self.assertEqual(urllib.parse.parse_qs(addition[3].decode()), {"urls": [magnet], "savepath": ["/downloads/descargas 日本語"], "stopped": ["true"]})
 
     def testUploadTorrentBytesWithoutTextConversion(self) -> None:
         with tempfile.TemporaryDirectory(prefix="gtkbt-upload-") as directory:
             torrent = Path(directory) / "fixture.torrent"
             torrent.write_bytes(b"torrent\x00\xff\r\nbytes")
             self.server.responses = [(200, b"", {}), (200, b"", {}), (200, b"[]", {})]
-            code, result = self.invoke(torrent=str(torrent), save_path="/tmp/descargas 日本語")
+            code, result = self.invoke(torrent=str(torrent), save_path="/downloads/descargas 日本語")
             self.assertEqual(code, 0, result)
             upload = self.server.requests[1]
             self.assertEqual(upload[:2], ("POST", "/api/v2/torrents/add"))
             self.assertTrue(upload[2]["Content-Type"].startswith("multipart/form-data; boundary="))
             self.assertIn(torrent.read_bytes(), upload[3])
-            self.assertIn('name="savepath"\r\n\r\n/tmp/descargas 日本語'.encode(), upload[3])
+            self.assertIn('name="savepath"\r\n\r\n/downloads/descargas 日本語'.encode(), upload[3])
 
     def testRejectUnsuccessfulAdditionEvenWithHttp200(self) -> None:
         self.server.responses = [(200, b"", {}), (200, b"Fails.", {})]
-        self.assertEqual(self.invoke(magnet="magnet:?xt=urn:btih:" + "a" * 40, save_path="/tmp"), (1, {"error": 4, "status": 200}))
+        self.assertEqual(self.invoke(magnet="magnet:?xt=urn:btih:" + "a" * 40, save_path="/downloads"), (1, {"error": 4, "status": 200}))
+
+    def testReadCurrentAdditionSummaryIncludingPendingRequests(self) -> None:
+        for status, success, pending in ((200, 1, 0), (202, 0, 1)):
+            with self.subTest(status=status):
+                summary: dict[str, Any] = {"success_count": success, "failure_count": 0, "pending_count": pending, "added_torrent_ids": []}
+                self.server.responses = [(200, b"", {}), (status, json.dumps(summary).encode(), {}), (200, b"[]", {})]
+                code, result = self.invoke(magnet="magnet:?xt=urn:btih:" + "a" * 40, save_path="/downloads")
+                self.assertEqual(code, 0, result)
+
+
+class TestRealEngineClient(unittest.TestCase):
+    def testControlAndRestartPartialDownloadWithoutQtClientDependencies(self) -> None:
+        if engine is None:
+            self.skipTest("Run with --engine to exercise a real disposable session")
+        testsession.binary = engine
+        with tempfile.TemporaryDirectory(prefix="gtkbt-client-session-") as directory:
+            session = testsession.Session(Path(directory))
+            try:
+                torrent, identifier, firstPiece = testsession.torrentFixture()
+                torrentPath = session.root / "fixture.torrent"
+                torrentPath.write_bytes(torrent)
+                payload = session.destination / "archivo 日本語.bin"
+                payload.write_bytes(firstPiece + b"\x00" * 16384)
+                session.start()
+                session.login()
+
+                def invoke(**changes: Any) -> Any:
+                    code, result = callProbe({"url": session.url, "username": "baseline", "password": session.password,
+                                              "save_path": str(session.destination), **changes})
+                    self.assertEqual(code, 0, result)
+                    return result
+
+                invoke(torrent=str(torrentPath))
+                testsession.waitFor(session.torrents, lambda items: len(items) == 1)
+                invoke(start=identifier)
+                testsession.waitFor(session.torrents, lambda items: items[0]["state"] == "stalledDL" and items[0]["progress"] == 0.5)
+                invoke(stop=identifier)
+                testsession.waitFor(session.torrents, lambda items: items[0]["state"] == "stoppedDL")
+                session.stop()
+                session.start()
+                session.login()
+                restored = testsession.waitFor(lambda: invoke()["torrents"], lambda items: bool(items) and items[0]["progress"] == 0.5)[0]
+                self.assertEqual(restored["hash"], identifier)
+                self.assertEqual(restored["progress"], 0.5)
+                self.assertEqual(restored["state"], "stoppedDL")
+                self.assertEqual(restored["name"], "archivo 日本語.bin")
+                invoke(remove=identifier)
+                testsession.waitFor(session.torrents, lambda items: not items)
+                self.assertEqual(payload.read_bytes()[:16384], firstPiece)
+                magnetId = "b" * 40
+                invoke(magnet="magnet:?xt=urn:btih:" + magnetId + "&dn=日本語")
+                testsession.waitFor(session.torrents, lambda items: len(items) == 1)
+                self.assertEqual(invoke()["torrents"][0]["hash"], magnetId)
+                invoke(remove=magnetId)
+                testsession.waitFor(session.torrents, lambda items: not items)
+                invoke(torrent=str(torrentPath))
+                testsession.waitFor(session.torrents, lambda items: len(items) == 1)
+                invoke(remove=identifier, delete_files=True)
+                testsession.waitFor(session.torrents, lambda items: not items)
+                testsession.waitFor(payload.exists, lambda exists: not exists)
+            finally:
+                session.close()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--probe", type=Path, required=True)
+    parser.add_argument("--engine", type=Path)
     arguments, remaining = parser.parse_known_args()
     probe = arguments.probe.resolve()
+    engine = arguments.engine.resolve() if arguments.engine is not None else None
     unittest.main(argv=[__file__, *remaining])

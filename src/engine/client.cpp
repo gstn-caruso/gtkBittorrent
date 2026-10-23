@@ -40,8 +40,29 @@ namespace
 
     void checkAddition(const std::string &response)
     {
-        if (!response.empty() && (response != "Ok."))
+        if (response.empty() || (response == "Ok."))
+            return;
+        if (response == "Fails.")
             throw Engine::Error(Engine::ErrorKind::Server, "Engine did not accept the torrent", 200);
+        try
+        {
+            const Json result = Json::parse(response);
+            for (const char *field : {"success_count", "failure_count", "pending_count"})
+            {
+                if (!result.at(field).is_number_unsigned())
+                    throw Engine::Error(Engine::ErrorKind::Protocol, "Invalid torrent addition summary");
+            }
+            if ((result.at("failure_count").get<std::uint64_t>() > 0)
+                || ((result.at("success_count").get<std::uint64_t>() == 0)
+                    && (result.at("pending_count").get<std::uint64_t>() == 0)))
+            {
+                throw Engine::Error(Engine::ErrorKind::Server, "Engine did not accept the torrent", 200);
+            }
+        }
+        catch (const Json::exception &)
+        {
+            throw Engine::Error(Engine::ErrorKind::Protocol, "Invalid torrent addition response");
+        }
     }
 
     curl_mimepart *addPart(curl_mime *mime, const char *name, const char *data, const std::size_t size)
