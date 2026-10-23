@@ -2,7 +2,7 @@
 
 gtkBittorrent is a C++20 BitTorrent client being migrated from qBittorrent to
 GTK and gtkmm while retaining libtorrent, saved sessions, and remote control.
-The desktop and headless engine currently still use Qt. The separate profile
+The default desktop and headless engine currently still use Qt. The separate profile
 import tool and new engine-client library already build and run without Qt.
 
 The migration scope, stages, and release policy are in
@@ -27,6 +27,12 @@ Qt desktop application is built as `gtkbittorrent`. Both builds include
 The [engine-client library](src/engine/README.md) builds independently with
 libcurl and nlohmann-json. Its real-engine tests verify the control boundary that
 the GTK interface will use.
+
+An initial [native GTK preview](src/gtk/README.md) now connects to a running
+engine, displays live torrent rows, and starts/stops selected torrents. It builds
+as `gtkbittorrent-gtk` from `src/gtk` and is tested locally against a real engine.
+It is not yet included in release packages; torrent addition, preferences, and
+managed backend startup remain in progress.
 
 ## Profiles
 

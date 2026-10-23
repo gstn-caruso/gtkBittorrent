@@ -1,0 +1,59 @@
+name: CI - GTK preview
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-gtk-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: ${{ github.head_ref != '' }}
+
+jobs:
+  gtk:
+    name: Native GTK controls
+    runs-on: ubuntu-24.04
+    container:
+      image: ubuntu@sha256:c098726dd9b9733f3e885f8de0ef375206a311b0a317eadc40d347b1115fb944
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Install GTK build and test dependencies
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+            ca-certificates git cmake g++ ninja-build pkg-config python3 \
+            libgtkmm-4.0-dev libcurl4-openssl-dev nlohmann-json3-dev \
+            xvfb xauth dbus-daemon adwaita-icon-theme fonts-dejavu-core
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Initialize GTK CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: cpp
+          build-mode: manual
+
+      - name: Build and exercise native widgets without Qt
+        run: |
+          cmake -S src/gtk -B build/gtk -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-Wall -Wextra -Wpedantic -Werror"
+          cmake --build build/gtk --parallel 2
+          ctest --test-dir build/gtk --output-on-failure
+          ldd build/gtk/gtkbittorrent-gtk > build/gtk/dependencies.txt
+          if grep -E 'libQt|not found' build/gtk/dependencies.txt; then
+            exit 1
+          fi
+
+      - name: Analyze GTK code
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: gtk-preview

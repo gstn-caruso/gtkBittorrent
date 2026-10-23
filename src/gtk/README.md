@@ -17,7 +17,7 @@ Follow GTK's font, focus, contrast, accent, and dark-theme settings. The light
 reference palette is paper `#FFFFFF`, workspace `#F7F8FA`, sidebar `#EDF1F4`, ink
 `#202A34`, secondary text `#596674`, and transfer blue `#2D6E96`; these are design
 references rather than forced overrides of the user's theme. Use the system
-sans family, with a 18px semibold window title and ordinary native control/table
+sans family, with a small semibold window title and ordinary native control/table
 text. The table, rather than a branded hero or cards, carries the visual weight.
 
 ```text
@@ -30,8 +30,8 @@ Connection and operation status
 ```
 
 The first slice verifies connection, live torrent rows, and selected-torrent
-start/stop controls. File/magnet/removal dialogs, filtering/sorting, automatic backend ownership,
-packaging, and feature parity remain required follow-up work. The release target
+start/stop controls. File/magnet/removal dialogs, filtering/sorting, automatic
+backend ownership, packaging, and feature parity remain required follow-up work. The release target
 is GTK 4.24.1; the initial local trial uses GTK 4.22.4 and gtkmm 4.20.0 available
 on the development machine. Final GTK dependency pinning remains unverified.
 
@@ -57,3 +57,9 @@ IDs are retained across snapshot updates. Native theme settings, keyboard focus,
 and labelled connection fields remain available. The UI test drives actual GTK
 buttons and verifies rendered Unicode text and selected-torrent API requests
 on an isolated D-Bus/Xvfb session.
+
+To include the real partial-download UI case, configure with
+`-DENGINE_TEST_BINARY="$PWD/build/engine/gtkbittorrent-engine"` (adjust to the
+headless binary built locally). The case verifies that closing GTK leaves the
+external engine running and its half-complete payload intact. Authentication
+failure tests check the visible error and disabled torrent controls.

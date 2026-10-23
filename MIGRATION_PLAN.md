@@ -1,8 +1,10 @@
 # GTK migration and continuous release plan
 
-Status: implementation in progress; Linux baseline, isolated fork identity, profile import, and a Qt-free engine client/worker established.
+Status: implementation in progress; first prerelease published and a Qt-free GTK preview controls test sessions.
 
 Assessment date: 2026-10-22.
+
+Latest verified checkpoint: 2026-10-23.
 
 ## Verified progress and continuation
 
@@ -28,17 +30,23 @@ delivered.
 - [x] Add a Qt-free worker with value-based commands/events, FIFO results,
   cancellation, snapshot coalescing, and nonblocking submission; pass local
   address, undefined-behavior, and thread sanitizer checks.
+- [x] Build a Qt-free native GTK preview; display Unicode rows and start/stop
+  selected torrents through actual widgets against a real disposable engine.
+- [x] Publish/download the first CI-tested prerelease and verify its checksums
+  and real-engine session/import behavior locally.
 - [ ] Complete the remaining behavior baseline, including proxy/DNS handling.
 - [ ] Verify native Windows/macOS installations.
-- [ ] Complete release packaging, CI integration, and installed-package smoke
+- [x] Complete Linux release packaging, CI integration, and installed-package smoke
   tests; verify an actual downloadable prerelease.
-- [ ] Move the default branch to `main` and verify automatic releases per push.
+- [x] Move the local and GitHub default branch to `main`.
+- [ ] Verify the first automatic prerelease and subsequent per-push releases.
 - [ ] Implement the GTK client/engine boundary and interface.
 - [ ] Reach feature parity and remove Qt throughout the application and packages.
 
 Current checkpoint: [release tools](dist/release/README.md) provide a Linux build
-driver, Debian packager, and immutable prerelease publisher. Fourteen local tool
-tests pass. Full container builds passed 26 desktop and 27 headless CTest entries.
+driver, Debian packager, and immutable prerelease publisher. Fifteen local tool
+tests pass (ten publisher and five packager tests). Full container builds passed
+26 desktop and 27 headless CTest entries.
 The resulting 18 MB package passed the real installed-runtime smoke suite for
 both applications. Its build manifest is retained outside documentation paths,
 which minimal Ubuntu images exclude. Publication tests cover retries,
@@ -47,7 +55,14 @@ writes. All seven push workflows for `e9a353126` passed on GitHub: Ubuntu,
 Windows, macOS, Python, WebUI, file-health, and engine-client security/sanitizer
 checks. The earlier manual release run also passed its Linux package and clean
 installation job; its Python/macOS failures were corrected and verified in the
-newer push runs. No release has been published yet.
+newer push runs. The first [prerelease](https://github.com/gstn-caruso/gtkBittorrent/releases/tag/build-b6f7379035dc430334f44f312d8a0b1e0c40230c)
+is now published. GitHub rewrote `~` in the uploaded package filename, so the
+initial publisher refused its checksum/name mismatch. After verifying all
+original CI artifact digests and ten passing prerequisite jobs, the draft's
+checksum metadata was corrected and publication resumed. Package bytes were
+unchanged. The downloaded release passes checksums and all five real-engine
+session/import tests. Future packages use safe filenames; automatic publication
+with that correction remains to be verified in the next main run.
 
 The [Qt-free engine client](src/engine/README.md) now has thirteen HTTP contract
 tests and a real-engine integration test. These pass with address/undefined
@@ -59,25 +74,37 @@ snapshot coalescing, and owned torrent/magnet/removal payloads. All client and
 worker tests pass under address/undefined-behavior sanitizers; the worker tests
 also pass under ThreadSanitizer. CI now includes these checks and security
 analysis, and release builds exercise the client against the newly built engine.
-GTK widgets, process lifecycle/profile ownership, and advanced API operations
-remain pending; this does not complete stage 3.
+The [native GTK preview](src/gtk/README.md) now consumes these events in a
+`ColumnView` and controls selected torrents. Three local UI cases cover Unicode
+rendering/selection, authentication failures, and real partial-download controls
+under isolated D-Bus/Xvfb. The window follows GTK theme settings, retains selected
+IDs across updates, and joins workers after its application loop exits. Process
+lifecycle/profile ownership, advanced API operations, and a usable packaged GTK
+application remain pending; this does not complete stages 3 or 4.
 
-The default-branch move and first automatic `main` release are being applied with
-this checkpoint. Resume by inspecting the remote default branch and the newest
-continuous-release run. Verify a downloadable prerelease with matching commit
-and checksums before marking the release stage complete. Do not restart jobs
-that are still running. The earlier [manual run](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39887360562)
-is terminal; the current source includes its verified fixes. Preserve the full
-migration scope and use targeted tests for each change. The locally verified
-package records commit `229149f52`;
-its desktop/session tests also use the explicit Web API enablement added after
-that packaging checkpoint. Build logs and artifacts are under
-`build/release-verified` and `build/release-runtime-*.log` when available. Inspect
-the worktree and remote state before continuing.
+The local and remote default branch are now `main`. The first automatic release
+run was [39892861397](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39892861397),
+for `b6f737903`. All prerequisite jobs passed; only publication failed before the
+verified draft recovery described above. That run is terminal. Inspect the
+newest main run to verify the corrected automatic publisher and the new GTK
+workflow. Verify a downloadable prerelease with matching commit/checksums before
+marking automatic releases complete. Do not restart jobs that are still running.
+The earlier [manual run](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39887360562)
+is also terminal; the current source includes its verified fixes. Preserve the
+full migration scope and use targeted tests for each change. The downloaded and
+locally verified public package records `b6f737903`; its artifacts, checksum
+recovery record, and session results are under `build/release-recovery` when
+available. Earlier build/runtime logs remain under `build/release-verified` and
+`build/release-runtime-*.log`. Inspect the worktree and remote state before
+continuing.
 
-The next independent slice is a GTK window consuming the worker/events, followed
-by process/profile ownership and the remaining controls. Keep network calls off
-GTK's main thread; request worker stop without joining on an active UI thread.
+Next implement GTK file/magnet/removal dialogs, filtering/sorting, and managed
+backend/profile ownership. The current preview connects to externally owned
+engines and is available from source, not in the release package. Local GTK UI
+checks and a rendered screenshot are under `build/gtk-preview`. GTK 4.24.1
+dependency validation and native GTK distribution remain pending.
+Keep network calls off GTK's main thread; request worker stop without joining
+on an active UI thread.
 The standalone client build is under `build/engine-client`,
 sanitizer checks under `build/engine-client-sanitize`, and release-container
 client checks under `build/release-verified/client` when available.
@@ -148,10 +175,11 @@ real-engine tests verify imported legacy and SQLite sessions without modifying
 their sources. See the [import guide](src/profile/README.md).
 
 Linux installation metadata, workflow executable paths, and the CI dependency
-chain have been adapted. GitHub workflows now execute; their first full result,
-native Windows/macOS installation verification, the branch move, and automatic
-prereleases remain pending. Neither the desktop nor the torrent engine is
-Qt-free yet.
+chain have been adapted. GitHub workflows execute, the default branch is `main`,
+and the first CI-tested prerelease is published. Native Windows/macOS installer
+execution, the corrected fully automatic publisher, and GTK distribution remain
+pending. The default desktop and torrent engine still use Qt; the new preview
+frontend is Qt-free.
 
 ## Migration stages
 
@@ -284,6 +312,7 @@ through manual dispatch with `full_matrix` enabled:
 | [Python](.github/workflows/ci_python.yaml) | Type checking, lint, formatting, compilation |
 | [File health](.github/workflows/ci_file_health.yaml) | Pre-commit checks, generated documentation checks, workflow analysis |
 | [Engine client](.github/workflows/ci_engine_client.yaml) | Independent Qt-free build, HTTP contracts, sanitizers, C++ CodeQL |
+| [GTK preview](.github/workflows/ci_gtk.yaml) | Native widgets under Xvfb in Ubuntu 26.04, Qt-free dependency check, C++ CodeQL |
 
 There is also a scheduled stale-PR bot and Dependabot configuration. Reassess the
 stale bot separately from the build pipeline when adapting fork administration.
@@ -293,14 +322,14 @@ Ubuntu package, tests its installed binaries in a separate runtime container,
 and publishes only after all required jobs succeed. Its manual trigger can
 validate other branches without publishing. Only the publishing job grants
 contents write permission, and main-branch runs are not cancelled by new pushes.
-The first manual run and push checks are now registered and executing. WebUI and
-file-health jobs passed; the full pipeline has not yet passed. Inspect the live
-run linked in the continuation checkpoint for current evidence.
+Native build/test, WebUI, file-health, client/worker, and package smoke jobs passed
+in the first main run. Its publication required the checksum recovery described
+above; the corrected full pipeline still needs an automatic successful run.
 
 Keep Python, WebUI, file-health, and security checks while those components remain.
 Replace Qt-specific build and packaging steps as their corresponding migration
-stages land. Native Windows/macOS execution must still validate the selected
-routine versions.
+stages land. Native Windows/macOS builds/tests validated the selected routine
+version. Native installer execution and native GTK distribution remain pending.
 
 ## Continuous release policy
 
