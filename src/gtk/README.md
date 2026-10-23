@@ -23,15 +23,17 @@ text. The table, rather than a branded hero or cards, carries the visual weight.
 ```text
 gtkBittorrent                                      Connect
 Address / username / password / Connect
-Start   Stop   Remove
+Add magnet   Start   Stop   Remove
 Name                            Size    Progress    State
 Torrent rows, using GTK's virtualized ColumnView
 Connection and operation status
 ```
 
-The first slice verifies connection, live torrent rows, and selected-torrent
-start/stop controls. File/magnet/removal dialogs, filtering/sorting, automatic
-backend ownership, packaging, and feature parity remain required follow-up work. The release target
+The preview verifies connection, live torrent rows, selected-torrent start/stop,
+and magnet addition. The native magnet dialog accepts a destination on the
+engine and an optional stopped state; cancel and invalid links send no request.
+File/removal dialogs, filtering/sorting, automatic backend ownership, packaging,
+and feature parity remain required follow-up work. The release target
 is GTK 4.24.1; the initial local trial uses GTK 4.22.4 and gtkmm 4.20.0 available
 on the development machine. Final GTK dependency pinning remains unverified.
 
@@ -63,3 +65,5 @@ To include the real partial-download UI case, configure with
 headless binary built locally). The case verifies that closing GTK leaves the
 external engine running and its half-complete payload intact. Authentication
 failure tests check the visible error and disabled torrent controls.
+Magnet tests exercise cancel, invalid input, Unicode destinations, and addition
+to a real engine without public trackers or peer discovery.

@@ -30,6 +30,40 @@ def runGtk(data: Mapping[str, Any]) -> subprocess.CompletedProcess[str]:
 
 
 class TestGtk(unittest.TestCase):
+    def testAddMagnetWithUnicodeDestinationAfterCancelAndInvalidInput(self) -> None:
+        identifier = "c" * 40
+        name = "descarga 日本語"
+        magnet = f"magnet:?xt=urn:btih:{identifier}&dn={urllib.parse.quote(name)}"
+        savePath = "/downloads/descargas 日本語"
+        torrents: list[dict[str, Any]] = []
+        additions: list[dict[str, list[str]]] = []
+        server = ApiServer()
+
+        def respond(method: str, path: str, body: bytes) -> tuple[int, bytes, dict[str, str]]:
+            if path == "/api/v2/auth/login":
+                return 200, b"Ok.", {}
+            if method == "GET" and path == "/api/v2/torrents/info":
+                return 200, json.dumps(torrents).encode(), {}
+            if path == "/api/v2/torrents/add":
+                additions.append(urllib.parse.parse_qs(body.decode()))
+                torrents.append({"hash": identifier, "name": name, "size": 0, "progress": 0, "state": "stoppedDL"})
+                return 200, b'{"success_count":1,"failure_count":0,"pending_count":0}', {}
+            return 404, b"", {}
+
+        server.provider = respond
+        thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
+        thread.start()
+        try:
+            result = runGtk({"url": f"http://127.0.0.1:{server.server_port}/", "username": "baseline",
+                             "password": secrets.token_urlsafe(24), "action": "add-magnet", "magnet": magnet,
+                             "save_path": savePath, "name": name})
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            self.assertEqual(additions, [{"urls": [magnet], "savepath": [savePath], "stopped": ["true"]}])
+        finally:
+            server.shutdown()
+            thread.join(timeout=2)
+            server.server_close()
+
     def testExplainAuthenticationFailureAndDisableTorrentControls(self) -> None:
         server = ApiServer()
         server.responses = [(401, b"", {})]
@@ -111,6 +145,30 @@ class TestGtk(unittest.TestCase):
                 self.assertEqual(restored["progress"], 0.5)
                 self.assertEqual(payload.read_bytes()[:16384], firstPiece)
                 self.assertIsNone(session.process.poll() if session.process is not None else 0)
+            finally:
+                session.close()
+
+    def testNativeMagnetDialogAddsToARealEngine(self) -> None:
+        if engine is None:
+            self.skipTest("Run with --engine to exercise the actual headless engine")
+        testsession.binary = engine
+        with tempfile.TemporaryDirectory(prefix="gtkbt-gtk-magnet-") as directory:
+            session = testsession.Session(Path(directory))
+            try:
+                session.start()
+                session.login()
+                identifier = "c" * 40
+                name = "descarga 日本語"
+                destination = session.destination / "descargas 日本語"
+                magnet = f"magnet:?xt=urn:btih:{identifier}&dn={urllib.parse.quote(name)}"
+                result = runGtk({"url": session.url, "username": "baseline", "password": session.password,
+                                 "action": "add-magnet", "magnet": magnet, "save_path": str(destination), "name": name})
+                self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+                added = testsession.waitFor(session.torrents, lambda items: len(items) == 1)[0]
+                self.assertEqual(added["hash"], identifier)
+                self.assertEqual(added["name"], name)
+                self.assertEqual(added["state"], "stoppedDL")
+                self.assertEqual(Path(added["save_path"]), destination)
             finally:
                 session.close()
 

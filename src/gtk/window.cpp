@@ -123,11 +123,13 @@ namespace Gui
         , m_passwordLabel {"_Password", true}
         , m_connect {"Connect"}
         , m_toolbar {Gtk::Orientation::HORIZONTAL, 8}
+        , m_addMagnet {"Add magnet…"}
         , m_start {"Start"}
         , m_stop {"Stop"}
         , m_footer {Gtk::Orientation::HORIZONTAL, 12}
         , m_status {"Enter your connection details, then choose Connect."}
         , m_count {"0 torrents"}
+        , m_magnetDialog {*this}
         , m_rows {Gio::ListStore<TorrentRow>::create()}
         , m_selection {Gtk::SingleSelection::create(m_rows)}
     {
@@ -166,9 +168,17 @@ namespace Gui
         m_stop.set_name("stop-torrent");
         m_start.signal_clicked().connect([this]() { submitSelected(true); });
         m_stop.signal_clicked().connect([this]() { submitSelected(false); });
+        m_addMagnet.set_name("add-magnet");
+        m_addMagnet.signal_clicked().connect([this]()
+        {
+            m_magnetDialog.reset();
+            m_magnetDialog.present();
+        });
+        m_magnetDialog.signal_add().connect([this](Engine::AddMagnet command) { submit(std::move(command)); });
         m_toolbar.set_margin_start(12);
         m_toolbar.set_margin_end(12);
         m_toolbar.set_margin_bottom(8);
+        m_toolbar.append(m_addMagnet);
         m_toolbar.append(m_start);
         m_toolbar.append(m_stop);
         m_selection->set_autoselect(false);
@@ -212,6 +222,7 @@ namespace Gui
 
     void Window::connectEngine()
     {
+        m_magnetDialog.hide();
         if (m_worker)
         {
             m_worker->requestStop();
@@ -230,12 +241,19 @@ namespace Gui
         const auto row = std::dynamic_pointer_cast<TorrentRow>(m_selection->get_selected_item());
         if (!m_worker || !m_connected || !row)
             return;
+        if (start)
+            submit(Engine::Start {row->snapshot().id});
+        else
+            submit(Engine::Stop {row->snapshot().id});
+    }
+
+    void Window::submit(Engine::Command command)
+    {
+        if (!m_worker || !m_connected)
+            return;
         try
         {
-            if (start)
-                m_worker->submit(Engine::Start {row->snapshot().id});
-            else
-                m_worker->submit(Engine::Stop {row->snapshot().id});
+            m_worker->submit(std::move(command));
         }
         catch (const Engine::Error &)
         {
@@ -246,6 +264,7 @@ namespace Gui
     void Window::updateControls()
     {
         const bool selected = static_cast<bool>(m_selection->get_selected_item());
+        m_addMagnet.set_sensitive(m_connected);
         m_start.set_sensitive(m_connected && selected);
         m_stop.set_sensitive(m_connected && selected);
     }
@@ -290,7 +309,10 @@ namespace Gui
             }
         }
         if (m_worker->finished())
+        {
             m_connected = false;
+            m_magnetDialog.hide();
+        }
         updateControls();
         return true;
     }

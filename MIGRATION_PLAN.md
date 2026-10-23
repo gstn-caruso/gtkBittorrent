@@ -32,6 +32,8 @@ delivered.
   address, undefined-behavior, and thread sanitizer checks.
 - [x] Build a Qt-free native GTK preview; display Unicode rows and start/stop
   selected torrents through actual widgets against a real disposable engine.
+- [x] Add a native magnet dialog and verify cancel, invalid input, Unicode
+  destinations, and stopped additions against a disposable real engine.
 - [x] Publish/download the first CI-tested prerelease and verify its checksums
   and real-engine session/import behavior locally.
 - [ ] Complete the remaining behavior baseline, including proxy/DNS handling.
@@ -75,9 +77,10 @@ worker tests pass under address/undefined-behavior sanitizers; the worker tests
 also pass under ThreadSanitizer. CI now includes these checks and security
 analysis, and release builds exercise the client against the newly built engine.
 The [native GTK preview](src/gtk/README.md) now consumes these events in a
-`ColumnView` and controls selected torrents. Three local UI cases cover Unicode
-rendering/selection, authentication failures, and real partial-download controls
-under isolated D-Bus/Xvfb. The window follows GTK theme settings, retains selected
+`ColumnView` and controls selected torrents. Five local UI cases cover Unicode
+rendering/selection, authentication failures, real partial-download controls,
+and the magnet dialog against both a test API and the real engine under isolated
+D-Bus/Xvfb. The window follows GTK theme settings, retains selected
 IDs across updates, and joins workers after its application loop exits. Process
 lifecycle/profile ownership, advanced API operations, and a usable packaged GTK
 application remain pending; this does not complete stages 3 or 4.
@@ -105,7 +108,7 @@ available. Earlier build/runtime logs remain under `build/release-verified` and
 `build/release-runtime-*.log`. Inspect the worktree and remote state before
 continuing.
 
-Next implement GTK file/magnet/removal dialogs, filtering/sorting, and managed
+Next implement GTK file/removal dialogs, filtering/sorting, and managed
 backend/profile ownership. The current preview connects to externally owned
 engines and is available from source, not in the release package. Local GTK UI
 checks and a rendered screenshot are under `build/gtk-preview`. GTK 4.24.1

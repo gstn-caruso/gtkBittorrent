@@ -44,6 +44,87 @@ namespace
         }
         return false;
     }
+
+    Gtk::Window *dialog(const char *name)
+    {
+        const auto windows = Gtk::Window::get_toplevels();
+        for (unsigned int index = 0; index < windows->get_n_items(); ++index)
+        {
+            const auto window = std::dynamic_pointer_cast<Gtk::Window>(windows->get_object(index));
+            if (window && window->get_visible() && (window->get_name() == name))
+                return window.get();
+        }
+        return nullptr;
+    }
+
+    bool addMagnet(Gtk::Window &window, const nlohmann::json &input, int &phase)
+    {
+        if ((phase == 0) && displays(window, "Connected"))
+        {
+            widget<Gtk::Button>(window, "add-magnet").activate();
+            phase = 1;
+        }
+        if (Gtk::Window *addition = dialog("add-magnet-dialog"))
+        {
+            if (phase == 1)
+            {
+                widget<Gtk::Entry>(*addition, "magnet-link").set_text(input.at("magnet").get<std::string>());
+                widget<Gtk::Button>(*addition, "cancel-addition").activate();
+                phase = 2;
+            }
+            else if (phase == 3)
+            {
+                widget<Gtk::Entry>(*addition, "magnet-link").set_text("https://invalid.example/");
+                widget<Gtk::Button>(*addition, "confirm-addition").activate();
+                phase = 4;
+            }
+            else if ((phase == 4) && displays(*addition, "Enter a magnet link starting with magnet:?."))
+            {
+                widget<Gtk::Entry>(*addition, "magnet-link").set_text(input.at("magnet").get<std::string>());
+                widget<Gtk::Entry>(*addition, "save-path").set_text(input.at("save_path").get<std::string>());
+                widget<Gtk::CheckButton>(*addition, "add-stopped").set_active(true);
+                widget<Gtk::Button>(*addition, "confirm-addition").activate();
+                phase = 5;
+            }
+        }
+        else if (phase == 2)
+        {
+            widget<Gtk::Button>(window, "add-magnet").activate();
+            phase = 3;
+        }
+        return (phase == 5) && displays(window, input.at("name").get<std::string>());
+    }
+
+    bool controlSelected(Gtk::Window &window, const nlohmann::json &input, int &phase)
+    {
+        auto &view = widget<Gtk::ColumnView>(window, "torrent-list");
+        const auto selection = std::dynamic_pointer_cast<Gtk::SingleSelection>(view.get_model());
+        if (!selection || (selection->get_n_items() != input.value("count", 2U)))
+            return false;
+        for (unsigned int index = 0; index < selection->get_n_items(); ++index)
+        {
+            const auto row = std::dynamic_pointer_cast<Gui::TorrentRow>(selection->get_object(index));
+            if (!row || (row->snapshot().id.value() != input.at("hash").get<std::string>()))
+                continue;
+            if (phase == 0)
+            {
+                if (!displays(window, input.at("name").get<std::string>()))
+                    continue;
+                selection->set_selected(index);
+                widget<Gtk::Button>(window, "start-torrent").activate();
+                phase = 1;
+            }
+            else if ((phase == 1) && (row->snapshot().state == input.value("started_state", "downloading"))
+                     && (row->snapshot().progress == input.value("progress", 0.5)))
+            {
+                widget<Gtk::Button>(window, "stop-torrent").activate();
+                phase = 2;
+            }
+            else if ((phase == 2) && (row->snapshot().state == "stoppedDL"))
+                return true;
+        }
+        return false;
+    }
 }
 
 int main(int argc, char **argv)
@@ -92,36 +173,13 @@ int main(int argc, char **argv)
                     closeAt = std::chrono::steady_clock::now();
                     return true;
                 }
-                auto &view = widget<Gtk::ColumnView>(*window, "torrent-list");
-                const auto selection = std::dynamic_pointer_cast<Gtk::SingleSelection>(view.get_model());
-                if (selection && (selection->get_n_items() == input.value("count", 2U)))
+                const bool completed = input.value("action", "") == "add-magnet"
+                    ? addMagnet(*window, input, phase) : controlSelected(*window, input, phase);
+                if (completed)
                 {
-                    for (unsigned int index = 0; index < selection->get_n_items(); ++index)
-                    {
-                        const auto row = std::dynamic_pointer_cast<Gui::TorrentRow>(selection->get_object(index));
-                        if (!row || (row->snapshot().id.value() != input.at("hash").get<std::string>()))
-                            continue;
-                        if (phase == 0)
-                        {
-                            if (!displays(*window, input.at("name").get<std::string>()))
-                                continue;
-                            selection->set_selected(index);
-                            widget<Gtk::Button>(*window, "start-torrent").activate();
-                            phase = 1;
-                        }
-                        else if ((phase == 1) && (row->snapshot().state == input.value("started_state", "downloading"))
-                                 && (row->snapshot().progress == input.value("progress", 0.5)))
-                        {
-                            widget<Gtk::Button>(*window, "stop-torrent").activate();
-                            phase = 2;
-                        }
-                        else if ((phase == 2) && (row->snapshot().state == "stoppedDL"))
-                        {
-                            passed = true;
-                            closeAt = std::chrono::steady_clock::now() + std::chrono::milliseconds(input.value("hold_ms", 0));
-                            return true;
-                        }
-                    }
+                    passed = true;
+                    closeAt = std::chrono::steady_clock::now() + std::chrono::milliseconds(input.value("hold_ms", 0));
+                    return true;
                 }
                 if (std::chrono::steady_clock::now() >= deadline)
                     throw std::runtime_error("GTK controls did not reach the expected engine state");

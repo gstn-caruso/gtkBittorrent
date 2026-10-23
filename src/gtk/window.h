@@ -6,6 +6,7 @@
 #include <gtkmm.h>
 
 #include "engine/worker.h"
+#include "magnetdialog.h"
 #include "torrentrow.h"
 
 namespace Gui
@@ -19,6 +20,7 @@ namespace Gui
     private:
         void connectEngine();
         void submitSelected(bool start);
+        void submit(Engine::Command command);
         void updateControls();
         void applySnapshot(const std::vector<Engine::TorrentSnapshot> &torrents);
         bool poll();
@@ -35,6 +37,7 @@ namespace Gui
         Gtk::PasswordEntry m_password;
         Gtk::Button m_connect;
         Gtk::Box m_toolbar;
+        Gtk::Button m_addMagnet;
         Gtk::Button m_start;
         Gtk::Button m_stop;
         Gtk::ScrolledWindow m_scroll;
@@ -42,6 +45,7 @@ namespace Gui
         Gtk::Box m_footer;
         Gtk::Label m_status;
         Gtk::Label m_count;
+        MagnetDialog m_magnetDialog;
         Glib::RefPtr<Gio::ListStore<TorrentRow>> m_rows;
         Glib::RefPtr<Gtk::SingleSelection> m_selection;
         std::unique_ptr<Engine::Worker> m_worker;
