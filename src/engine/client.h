@@ -1,8 +1,10 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -62,6 +64,8 @@ namespace Engine
         void start(const TorrentId &id);
         void stop(const TorrentId &id);
         void remove(const TorrentId &id, bool deleteFiles);
+        void addMagnet(const std::string &magnet, const std::string &savePath, bool stopped);
+        void addTorrent(std::span<const std::byte> torrent, const std::string &savePath, bool stopped);
 
     private:
         struct Impl;

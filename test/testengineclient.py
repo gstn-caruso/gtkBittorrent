@@ -4,6 +4,7 @@ import argparse
 import json
 import secrets
 import subprocess  # nosec B404 # Exercise the locally built test probe without a shell.
+import tempfile
 import threading
 import time
 import unittest
@@ -148,6 +149,32 @@ class TestEngineClient(unittest.TestCase):
         self.server.delay = 0.2
         self.server.responses = [(200, b"", {})]
         self.assertEqual(self.invoke(timeout=25), (1, {"error": 2, "status": 0}))
+
+    def testAddMagnetWithUnicodeDestinationAndExplicitStoppedState(self) -> None:
+        self.server.responses = [(200, b"", {}), (200, b"Ok.", {}), (200, b"[]", {})]
+        magnet = "magnet:?xt=urn:btih:" + "a" * 40 + "&dn=日本語"
+        code, result = self.invoke(magnet=magnet, save_path="/tmp/descargas 日本語")
+        self.assertEqual(code, 0, result)
+        addition = self.server.requests[1]
+        self.assertEqual(addition[:2], ("POST", "/api/v2/torrents/add"))
+        self.assertEqual(urllib.parse.parse_qs(addition[3].decode()), {"urls": [magnet], "savepath": ["/tmp/descargas 日本語"], "stopped": ["true"]})
+
+    def testUploadTorrentBytesWithoutTextConversion(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="gtkbt-upload-") as directory:
+            torrent = Path(directory) / "fixture.torrent"
+            torrent.write_bytes(b"torrent\x00\xff\r\nbytes")
+            self.server.responses = [(200, b"", {}), (200, b"", {}), (200, b"[]", {})]
+            code, result = self.invoke(torrent=str(torrent), save_path="/tmp/descargas 日本語")
+            self.assertEqual(code, 0, result)
+            upload = self.server.requests[1]
+            self.assertEqual(upload[:2], ("POST", "/api/v2/torrents/add"))
+            self.assertTrue(upload[2]["Content-Type"].startswith("multipart/form-data; boundary="))
+            self.assertIn(torrent.read_bytes(), upload[3])
+            self.assertIn('name="savepath"\r\n\r\n/tmp/descargas 日本語'.encode(), upload[3])
+
+    def testRejectUnsuccessfulAdditionEvenWithHttp200(self) -> None:
+        self.server.responses = [(200, b"", {}), (200, b"Fails.", {})]
+        self.assertEqual(self.invoke(magnet="magnet:?xt=urn:btih:" + "a" * 40, save_path="/tmp"), (1, {"error": 4, "status": 200}))
 
 
 if __name__ == "__main__":

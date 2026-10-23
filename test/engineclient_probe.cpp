@@ -1,5 +1,9 @@
 #include <chrono>
+#include <cstddef>
+#include <fstream>
 #include <iostream>
+#include <iterator>
+#include <span>
 #include <string>
 
 #include <nlohmann/json.hpp>
@@ -14,6 +18,14 @@ int main()
         const json input = json::parse(std::cin);
         Engine::Client client(input.at("url").get<std::string>(), std::chrono::milliseconds(input.value("timeout", 3000)));
         client.login(input.at("username").get<std::string>(), input.at("password").get<std::string>());
+        if (input.contains("magnet"))
+            client.addMagnet(input.at("magnet").get<std::string>(), input.at("save_path").get<std::string>(), input.value("stopped", true));
+        if (input.contains("torrent"))
+        {
+            std::ifstream file(input.at("torrent").get<std::string>(), std::ios::binary);
+            const std::string bytes {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+            client.addTorrent(std::as_bytes(std::span(bytes)), input.at("save_path").get<std::string>(), input.value("stopped", true));
+        }
         if (input.contains("stop"))
             client.stop(Engine::TorrentId(input.at("stop").get<std::string>()));
         if (input.contains("start"))

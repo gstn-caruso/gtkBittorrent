@@ -38,6 +38,22 @@ namespace
             throw Engine::Error(Engine::ErrorKind::Transport, "HTTP transport failed");
     }
 
+    void checkAddition(const std::string &response)
+    {
+        if (!response.empty() && (response != "Ok."))
+            throw Engine::Error(Engine::ErrorKind::Server, "Engine did not accept the torrent", 200);
+    }
+
+    curl_mimepart *addPart(curl_mime *mime, const char *name, const char *data, const std::size_t size)
+    {
+        curl_mimepart *part = curl_mime_addpart(mime);
+        if (!part)
+            throw Engine::Error(Engine::ErrorKind::Transport, "Cannot construct upload");
+        check(curl_mime_name(part, name));
+        check(curl_mime_data(part, data, size));
+        return part;
+    }
+
     std::string baseUrl(const std::string &value)
     {
         const std::unique_ptr<CURLU, decltype(&curl_url_cleanup)> url(curl_url(), curl_url_cleanup);
@@ -140,7 +156,7 @@ namespace Engine
     struct Client::Impl
     {
         Impl(const std::string &url, std::chrono::milliseconds timeout);
-        std::string request(const std::string &resource, const std::optional<std::string> &body = std::nullopt);
+        std::string request(const std::string &resource, const std::optional<std::string> &body = std::nullopt, curl_mime *upload = nullptr);
 
         std::string url;
         std::chrono::milliseconds timeout;
@@ -160,7 +176,7 @@ namespace Engine
             throw Error(ErrorKind::Transport, "Cannot create HTTP transport");
     }
 
-    std::string Client::Impl::request(const std::string &resource, const std::optional<std::string> &body)
+    std::string Client::Impl::request(const std::string &resource, const std::optional<std::string> &body, curl_mime *upload)
     {
         curl_easy_reset(handle.get());
         std::string response;
@@ -179,6 +195,8 @@ namespace Engine
             check(curl_easy_setopt(handle.get(), CURLOPT_POSTFIELDSIZE_LARGE, static_cast<curl_off_t>(body->size())));
             check(curl_easy_setopt(handle.get(), CURLOPT_COPYPOSTFIELDS, body->c_str()));
         }
+        if (upload)
+            check(curl_easy_setopt(handle.get(), CURLOPT_MIMEPOST, upload));
         check(curl_easy_perform(handle.get()));
         long status = 0;
         check(curl_easy_getinfo(handle.get(), CURLINFO_RESPONSE_CODE, &status));
@@ -211,6 +229,33 @@ namespace Engine
     void Client::remove(const TorrentId &id, const bool deleteFiles)
     {
         m_impl->request("torrents/delete", "hashes=" + id.value() + "&deleteFiles=" + (deleteFiles ? "true" : "false"));
+    }
+
+    void Client::addMagnet(const std::string &magnet, const std::string &savePath, const bool stopped)
+    {
+        if (!magnet.starts_with("magnet:?") || (magnet.find_first_of("\r\n") != std::string::npos)
+            || (magnet.find('\0') != std::string::npos) || (savePath.find('\0') != std::string::npos))
+        {
+            throw Error(ErrorKind::InvalidInput, "Invalid magnet or destination");
+        }
+        checkAddition(m_impl->request("torrents/add", "urls=" + encode(magnet) + "&savepath=" + encode(savePath)
+                                     + "&stopped=" + (stopped ? "true" : "false")));
+    }
+
+    void Client::addTorrent(const std::span<const std::byte> torrent, const std::string &savePath, const bool stopped)
+    {
+        if (torrent.empty() || (savePath.find('\0') != std::string::npos))
+            throw Error(ErrorKind::InvalidInput, "Empty torrent or invalid destination");
+        const std::unique_ptr<curl_mime, decltype(&curl_mime_free)> upload(curl_mime_init(m_impl->handle.get()), curl_mime_free);
+        if (!upload)
+            throw Error(ErrorKind::Transport, "Cannot construct upload");
+        curl_mimepart *part = addPart(upload.get(), "torrents", reinterpret_cast<const char *>(torrent.data()), torrent.size());
+        check(curl_mime_filename(part, "upload.torrent"));
+        check(curl_mime_type(part, "application/x-bittorrent"));
+        addPart(upload.get(), "savepath", savePath.data(), savePath.size());
+        const std::string state = stopped ? "true" : "false";
+        addPart(upload.get(), "stopped", state.data(), state.size());
+        checkAddition(m_impl->request("torrents/add", std::nullopt, upload.get()));
     }
 
     void Client::login(const std::string &username, const std::string &password)
