@@ -4,6 +4,7 @@
 
 import argparse
 import os
+import shutil
 import subprocess  # nosec B404 # Local CMake and CTest tools without a shell.
 from pathlib import Path
 
@@ -14,6 +15,10 @@ def build(source: Path, directory: Path, commit: str, jobs: int) -> Path:
     info = sourceInfo(source, commit)
     if jobs < 1:
         raise ValueError("At least one build job is required")
+    cmake = shutil.which("cmake")
+    ctest = shutil.which("ctest")
+    if cmake is None or ctest is None:
+        raise FileNotFoundError("CMake and CTest are required")
     directory.mkdir(parents=True)
     environment = dict(os.environ, SOURCE_DATE_EPOCH=str(info.epoch), QT_QPA_PLATFORM="offscreen")
     stage = directory / "stage"
@@ -21,17 +26,17 @@ def build(source: Path, directory: Path, commit: str, jobs: int) -> Path:
         target = directory / variant
         gui = variant == "gui"
         commands = [
-            ["cmake", "-S", str(source), "-B", str(target), "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release",
+            [cmake, "-S", str(source), "-B", str(target), "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release",
              "-DCMAKE_INSTALL_PREFIX=/usr", "-DTESTING=ON", "-DGUI=" + ("ON" if gui else "OFF"),
              "-DSYSTEMD=" + ("OFF" if gui else "ON"),
              "-DSYSTEMD_SERVICES_INSTALL_DIR=/usr/lib/systemd/system",
              f"-DCMAKE_CXX_FLAGS=-DQT_FORCE_ASSERTS -ffile-prefix-map={source}=/source -ffile-prefix-map={directory}=/build"],
-            ["cmake", "--build", str(target), "--parallel", str(jobs)],
-            ["ctest", "--test-dir", str(target), "--output-on-failure", "--parallel", str(jobs)],
+            [cmake, "--build", str(target), "--parallel", str(jobs)],
+            [ctest, "--test-dir", str(target), "--output-on-failure", "--parallel", str(jobs)],
         ]
         for command in commands:
             subprocess.run(command, cwd=source, env=environment, check=True)  # nosec B603 # Fixed build tools and explicit paths.
-        subprocess.run(["cmake", "--install", str(target)], cwd=source, env=dict(environment, DESTDIR=str(stage)), check=True)  # nosec B603 # Fixed CMake install command.
+        subprocess.run([cmake, "--install", str(target)], cwd=source, env=dict(environment, DESTDIR=str(stage)), check=True)  # nosec B603 # Fixed CMake install command.
     return buildPackage(source, stage, directory / "artifacts", commit)
 
 

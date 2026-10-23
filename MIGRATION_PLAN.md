@@ -38,13 +38,17 @@ both applications. Its build manifest is retained outside documentation paths,
 which minimal Ubuntu images exclude. Publication tests cover retries,
 interrupted uploads, source/asset integrity, and tag collisions without network
 writes. The release workflow now gates publication on the adapted checks and
-installed-package tests; execution on GitHub remains unverified. No release has
-been published.
+installed-package tests. Its first manual GitHub run is in progress: file-health
+and WebUI checks passed, while Python lint found a build-tool lookup issue that
+has been corrected locally. Platform/package jobs remain in progress. No release
+has been published.
 
-Resume by verifying a manual release-workflow run on `master` (publication is
-skipped there), then moving the default branch to `main` and verifying its first
-automatic prerelease. Preserve the full migration scope and use targeted tests
-for each change. The locally verified package records source commit `229149f52`;
+Resume by checking [manual run 39887360562](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39887360562)
+and the newer Python-fix checks before dispatching the corrected full pipeline.
+Do not restart jobs that are still running. Publication is skipped on `master`.
+After validating the pipeline, move the default branch to `main` and verify its
+first automatic prerelease. Preserve the full migration scope and use targeted
+tests for each change. The locally verified package records commit `229149f52`;
 its desktop/session tests also use the explicit Web API enablement added after
 that packaging checkpoint. Build logs and artifacts are under
 `build/release-verified` and `build/release-runtime-*.log` when available. Inspect
@@ -115,9 +119,10 @@ real-engine tests verify imported legacy and SQLite sessions without modifying
 their sources. See the [import guide](src/profile/README.md).
 
 Linux installation metadata, workflow executable paths, and the CI dependency
-chain have been adapted. Native Windows/macOS installation verification, actual
-GitHub workflow execution, the branch move, and automatic prereleases remain
-pending. Neither the desktop nor the torrent engine is Qt-free yet.
+chain have been adapted. GitHub workflows now execute; their first full result,
+native Windows/macOS installation verification, the branch move, and automatic
+prereleases remain pending. Neither the desktop nor the torrent engine is
+Qt-free yet.
 
 ## Migration stages
 
@@ -256,8 +261,9 @@ Ubuntu package, tests its installed binaries in a separate runtime container,
 and publishes only after all required jobs succeed. Its manual trigger can
 validate other branches without publishing. Only the publishing job grants
 contents write permission, and main-branch runs are not cancelled by new pushes.
-At the last remote check, GitHub reported Actions enabled but returned no runs
-or commit checks after pushes. Successful execution remains unverified.
+The first manual run and push checks are now registered and executing. WebUI and
+file-health jobs passed; the full pipeline has not yet passed. Inspect the live
+run linked in the continuation checkpoint for current evidence.
 
 Keep Python, WebUI, file-health, and security checks while those components remain.
 Replace Qt-specific build and packaging steps as their corresponding migration
