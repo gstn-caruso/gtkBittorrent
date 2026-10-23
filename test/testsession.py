@@ -80,6 +80,7 @@ class Session:
             "[Preferences]\n"
             "General\\Locale=en\n"
             "Connection\\ResolvePeerCountries=false\n"
+            "WebUI\\Enabled=true\n"
             "WebUI\\Address=127.0.0.1\n"
             "WebUI\\LocalHostAuth=true\n"
             f"WebUI\\Port={self.port}\n"
