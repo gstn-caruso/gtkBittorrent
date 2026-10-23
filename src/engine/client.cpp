@@ -77,7 +77,7 @@ namespace
 
     std::string baseUrl(const std::string &value)
     {
-        const std::unique_ptr<CURLU, decltype(&curl_url_cleanup)> url(curl_url(), curl_url_cleanup);
+        const std::unique_ptr<CURLU, decltype(&curl_url_cleanup)> url {curl_url(), curl_url_cleanup};
         if (!url || value.find('\0') != std::string::npos
             || (curl_url_set(url.get(), CURLUPART_URL, value.c_str(), CURLU_DISALLOW_USER) != CURLUE_OK))
         {
@@ -86,22 +86,22 @@ namespace
         char *part = nullptr;
         if (curl_url_get(url.get(), CURLUPART_SCHEME, &part, 0) != CURLUE_OK)
             throw Engine::Error(Engine::ErrorKind::InvalidInput, "Missing engine URL scheme");
-        const CurlString scheme(part, curl_free);
+        const CurlString scheme {part, curl_free};
         if ((std::string(scheme.get()) != "http") && (std::string(scheme.get()) != "https"))
             throw Engine::Error(Engine::ErrorKind::InvalidInput, "Engine URLs must use HTTP or HTTPS");
         for (const CURLUPart component : {CURLUPART_QUERY, CURLUPART_FRAGMENT})
         {
             part = nullptr;
             const CURLUcode code = curl_url_get(url.get(), component, &part, 0);
-            const CurlString unused(part, curl_free);
+            const CurlString unused {part, curl_free};
             if (code == CURLUE_OK)
                 throw Engine::Error(Engine::ErrorKind::InvalidInput, "Engine URLs cannot contain a query or fragment");
         }
         part = nullptr;
         if (curl_url_get(url.get(), CURLUPART_URL, &part, 0) != CURLUE_OK)
             throw Engine::Error(Engine::ErrorKind::InvalidInput, "Invalid engine URL");
-        const CurlString normalized(part, curl_free);
-        std::string result(normalized.get());
+        const CurlString normalized {part, curl_free};
+        std::string result {normalized.get()};
         if (result.back() != '/')
             result += '/';
         return result;
@@ -111,7 +111,7 @@ namespace
     {
         if (value.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
             throw Engine::Error(Engine::ErrorKind::InvalidInput, "Request field is too large");
-        const CurlString result(curl_easy_escape(nullptr, value.data(), static_cast<int>(value.size())), curl_free);
+        const CurlString result {curl_easy_escape(nullptr, value.data(), static_cast<int>(value.size())), curl_free};
         if (!result)
             throw Engine::Error(Engine::ErrorKind::Transport, "Cannot encode request");
         return result.get();
@@ -138,9 +138,9 @@ namespace
 namespace Engine
 {
     Error::Error(const ErrorKind kind, const std::string &message, const long status)
-        : std::runtime_error(message)
-        , m_kind(kind)
-        , m_status(status)
+        : std::runtime_error {message}
+        , m_kind {kind}
+        , m_status {status}
     {
     }
 
@@ -155,7 +155,7 @@ namespace Engine
     }
 
     TorrentId::TorrentId(std::string value)
-        : m_value(std::move(value))
+        : m_value {std::move(value)}
     {
         const auto isHex = [](const char character)
         {
@@ -185,8 +185,8 @@ namespace Engine
     };
 
     Client::Impl::Impl(const std::string &endpoint, const std::chrono::milliseconds requestTimeout)
-        : timeout(requestTimeout)
-        , handle(nullptr, curl_easy_cleanup)
+        : timeout {requestTimeout}
+        , handle {nullptr, curl_easy_cleanup}
     {
         static const CurlRuntime runtime;
         if ((timeout.count() < 1) || (timeout > std::chrono::minutes(1)))
@@ -231,7 +231,7 @@ namespace Engine
     }
 
     Client::Client(const std::string &url, const std::chrono::milliseconds timeout)
-        : m_impl(std::make_unique<Impl>(url, timeout))
+        : m_impl {std::make_unique<Impl>(url, timeout)}
     {
     }
 
@@ -267,7 +267,7 @@ namespace Engine
     {
         if (torrent.empty() || (savePath.find('\0') != std::string::npos))
             throw Error(ErrorKind::InvalidInput, "Empty torrent or invalid destination");
-        const std::unique_ptr<curl_mime, decltype(&curl_mime_free)> upload(curl_mime_init(m_impl->handle.get()), curl_mime_free);
+        const std::unique_ptr<curl_mime, decltype(&curl_mime_free)> upload {curl_mime_init(m_impl->handle.get()), curl_mime_free};
         if (!upload)
             throw Error(ErrorKind::Transport, "Cannot construct upload");
         curl_mimepart *part = addPart(upload.get(), "torrents", reinterpret_cast<const char *>(torrent.data()), torrent.size());
