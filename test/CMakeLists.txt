@@ -6,6 +6,18 @@ add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
 )
 add_dependencies(check gtkbittorrent_import)
 
+find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+foreach(releaseTest testrelease testpackage)
+    add_test(NAME "${releaseTest}"
+        COMMAND "${Python3_EXECUTABLE}" -B -m unittest discover -s test -p "${releaseTest}.py" -v
+    )
+    set_tests_properties("${releaseTest}" PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        LABELS "release"
+        TIMEOUT 60
+    )
+endforeach()
+
 include_directories("../src")
 
 set(testFiles

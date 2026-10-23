@@ -61,6 +61,11 @@ jobs:
         run: |
           python -m compileall $PY_FILES
 
+      - name: Test release tools
+        run: |
+          python -B -m unittest discover -s test -p testrelease.py -v
+          python -B -m unittest discover -s test -p testpackage.py -v
+
       - name: Setup python (search engine)
         uses: actions/setup-python@v7
         with:

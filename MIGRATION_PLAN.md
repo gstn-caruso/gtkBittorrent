@@ -4,6 +4,50 @@ Status: implementation in progress; Linux baseline, isolated fork identity, and 
 
 Assessment date: 2026-10-22.
 
+## Verified progress and continuation
+
+Update this section at verified checkpoints. Mark work complete only after its
+relevant checks pass; retain unfinished stage criteria when part of a stage is
+delivered.
+
+- [x] Build the inherited Linux desktop and headless applications and pass the
+  22 inherited test executables.
+- [x] Verify local peer transfer, restart/resume, interrupted settings recovery,
+  and frozen legacy/SQLite sessions with real-engine integration tests.
+- [x] Establish separate fork identity, executable names, profile directories,
+  and command-line environment variables.
+- [x] Provide a Qt-free explicit profile importer; verify imported sessions with
+  the real engine and confirm source profiles remain unchanged.
+- [x] Validate staged Linux installations and fork desktop metadata.
+- [ ] Complete the remaining behavior baseline, including proxy/DNS handling.
+- [ ] Verify native Windows/macOS installations.
+- [ ] Complete release packaging, CI integration, and installed-package smoke
+  tests; verify an actual downloadable prerelease.
+- [ ] Move the default branch to `main` and verify automatic releases per push.
+- [ ] Implement the GTK client/engine boundary and interface.
+- [ ] Reach feature parity and remove Qt throughout the application and packages.
+
+Current checkpoint: [release tools](dist/release/README.md) provide a Linux build
+driver, Debian packager, and immutable prerelease publisher. Fourteen local tests
+pass, including a real fixture package build/extraction and repeated-packaging
+byte comparison. Publication tests cover retries, interrupted uploads,
+source/asset integrity, and tag collisions without network writes. The pinned
+Ubuntu build image builds successfully. These checks do not yet establish that
+the full application package or the GitHub pipeline works; no release has been
+published.
+
+Resume by building the full application in the release container, checking the
+installed package in a clean runtime container, and wiring publication behind
+the existing CI checks and package smoke tests. See the release tools guide for
+commands. Preserve the full migration scope and use targeted tests for each
+change. The current branch is `master`; the latest pushed checkpoint is
+`9bdebfb40` (isolated profiles and explicit import). Inspect the worktree before
+continuing.
+
+Keep this checkpoint current before context compaction so continuation does not
+depend on chat history. The migration remains in progress until all completion
+criteria below are met.
+
 ## Objective and agreed direction
 
 Migrate this qBittorrent fork completely to GTK, preserving its torrent engine,
@@ -199,9 +243,9 @@ There is also a scheduled stale-PR bot and Dependabot configuration. Reassess th
 stale bot separately from the build pipeline when adapting fork administration.
 
 These workflows upload build artifacts; they do not create GitHub Releases.
-GitHub reported Actions enabled for the fork but returned no registered workflows
-or runs at the assessment date. Successful execution of the checked-in workflows
-therefore remains unverified.
+GitHub reports Actions enabled for the fork and seven active workflows, but no
+workflow runs or commit checks have been returned after the pushes made so far.
+Successful execution of the checked-in workflows therefore remains unverified.
 
 Keep and adapt the existing checks. For routine builds, select one validated
 libtorrent version and retain the wider compatibility matrix on a schedule.
