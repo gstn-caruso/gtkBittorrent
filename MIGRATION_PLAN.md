@@ -89,6 +89,13 @@ verified draft recovery described above. That run is terminal. Inspect the
 newest main run to verify the corrected automatic publisher and the new GTK
 workflow. Verify a downloadable prerelease with matching commit/checksums before
 marking automatic releases complete. Do not restart jobs that are still running.
+The native GTK build, widget tests, and security analysis passed in
+[39898196612](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39898196612),
+including a clean container without Qt development packages. Its file-health
+job rejected GLib's valid `G_DEBUG="fatal-criticals"` token as a spelling error.
+A narrow spelling exception now passes the same pinned checker locally; the
+runtime setting remains enabled. The corrected source needs another main run
+before automatic publication can be verified.
 The earlier [manual run](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39887360562)
 is also terminal; the current source includes its verified fixes. Preserve the
 full migration scope and use targeted tests for each change. The downloaded and

@@ -3,6 +3,9 @@
 
 # try adding to `identifiers` list first, if doesn't work then `words` list
 
+[default]
+extend-ignore-re = ['G_DEBUG="fatal-criticals"']
+
 [default.extend-identifiers]
 additionals = "additionals"
 caf = "caf"
