@@ -64,5 +64,6 @@ add_subdirectory(src)
 add_subdirectory(dist)
 
 if (TESTING)
+    enable_testing()
     add_subdirectory(test)
 endif()
