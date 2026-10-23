@@ -39,3 +39,16 @@ foreach(testFile ${testFiles})
 
     add_dependencies(check "${testFilename}")
 endforeach()
+
+if (WEBUI AND NOT GUI)
+    find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME testsession
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/testsession.py"
+            --binary "$<TARGET_FILE:qbt_app>"
+    )
+    set_tests_properties(testsession PROPERTIES
+        LABELS "integration;session"
+        TIMEOUT 180
+    )
+    add_dependencies(check qbt_app)
+endif()

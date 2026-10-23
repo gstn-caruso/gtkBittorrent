@@ -28,6 +28,14 @@ end_of_line = crlf
 [test/testdata/crlf.txt]
 end_of_line = crlf
 
+[test/testdata/session/**.{bin,db,fastresume,torrent}]
+charset = unset
+end_of_line = unset
+indent_style = unset
+indent_size = unset
+insert_final_newline = unset
+trim_trailing_whitespace = unset
+
 # ignore paths
 [{dist/windows/3rdparty/*,src/base/3rdparty/**,src/lang/*.ts,src/webui/www/private/css/lib/*,src/webui/www/private/scripts/lib/*,src/webui/www/translations/*.ts}]
 charset = unset
