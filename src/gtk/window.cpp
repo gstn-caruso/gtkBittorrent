@@ -126,10 +126,12 @@ namespace Gui
         , m_addMagnet {"Add magnet…"}
         , m_start {"Start"}
         , m_stop {"Stop"}
+        , m_remove {"Remove…"}
         , m_footer {Gtk::Orientation::HORIZONTAL, 12}
         , m_status {"Enter your connection details, then choose Connect."}
         , m_count {"0 torrents"}
         , m_magnetDialog {*this}
+        , m_removalDialog {*this}
         , m_rows {Gio::ListStore<TorrentRow>::create()}
         , m_selection {Gtk::SingleSelection::create(m_rows)}
     {
@@ -175,12 +177,23 @@ namespace Gui
             m_magnetDialog.present();
         });
         m_magnetDialog.signal_add().connect([this](Engine::AddMagnet command) { submit(std::move(command)); });
+        m_remove.set_name("remove-torrent");
+        m_remove.signal_clicked().connect([this]()
+        {
+            const auto row = std::dynamic_pointer_cast<TorrentRow>(m_selection->get_selected_item());
+            if (!m_connected || !row)
+                return;
+            m_removalDialog.prepare(row->snapshot());
+            m_removalDialog.present();
+        });
+        m_removalDialog.signal_remove().connect([this](Engine::Remove command) { submit(std::move(command)); });
         m_toolbar.set_margin_start(12);
         m_toolbar.set_margin_end(12);
         m_toolbar.set_margin_bottom(8);
         m_toolbar.append(m_addMagnet);
         m_toolbar.append(m_start);
         m_toolbar.append(m_stop);
+        m_toolbar.append(m_remove);
         m_selection->set_autoselect(false);
         m_selection->set_can_unselect(true);
         m_selectionChanged = m_selection->signal_selection_changed().connect([this](unsigned int, unsigned int) { updateControls(); });
@@ -223,6 +236,7 @@ namespace Gui
     void Window::connectEngine()
     {
         m_magnetDialog.hide();
+        m_removalDialog.hide();
         if (m_worker)
         {
             m_worker->requestStop();
@@ -267,6 +281,7 @@ namespace Gui
         m_addMagnet.set_sensitive(m_connected);
         m_start.set_sensitive(m_connected && selected);
         m_stop.set_sensitive(m_connected && selected);
+        m_remove.set_sensitive(m_connected && selected);
     }
 
     void Window::applySnapshot(const std::vector<Engine::TorrentSnapshot> &torrents)
@@ -312,6 +327,7 @@ namespace Gui
         {
             m_connected = false;
             m_magnetDialog.hide();
+            m_removalDialog.hide();
         }
         updateControls();
         return true;

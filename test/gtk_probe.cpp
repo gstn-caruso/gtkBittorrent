@@ -125,6 +125,49 @@ namespace
         }
         return false;
     }
+
+    bool removeSelected(Gtk::Window &window, const nlohmann::json &input, int &phase)
+    {
+        auto &view = widget<Gtk::ColumnView>(window, "torrent-list");
+        const auto selection = std::dynamic_pointer_cast<Gtk::SingleSelection>(view.get_model());
+        if (!selection)
+            return false;
+        if (((phase == 0) || (phase == 2)) && !dialog("remove-torrent-dialog"))
+        {
+            for (unsigned int index = 0; index < selection->get_n_items(); ++index)
+            {
+                const auto row = std::dynamic_pointer_cast<Gui::TorrentRow>(selection->get_object(index));
+                if (row && (row->snapshot().id.value() == input.at("hash").get<std::string>()))
+                {
+                    selection->set_selected(index);
+                    widget<Gtk::Button>(window, "remove-torrent").activate();
+                    ++phase;
+                    break;
+                }
+            }
+        }
+        if (Gtk::Window *removal = dialog("remove-torrent-dialog"))
+        {
+            if ((phase == 1) || (phase == 3))
+            {
+                if (!displays(*removal, input.at("name").get<std::string>()))
+                    throw std::runtime_error("Removal confirmation did not identify the torrent");
+                auto &deleteFiles = widget<Gtk::CheckButton>(*removal, "delete-files");
+                if (deleteFiles.get_active())
+                    throw std::runtime_error("Removal defaulted to deleting downloaded files");
+                deleteFiles.set_active((phase == 1) || input.value("delete_files", false));
+                if (phase == 1)
+                    widget<Gtk::Button>(*removal, "cancel-removal").activate();
+                else
+                {
+                    selection->set_selected(0);
+                    widget<Gtk::Button>(*removal, "confirm-removal").activate();
+                }
+                ++phase;
+            }
+        }
+        return (phase == 4) && (selection->get_n_items() == input.value("remaining_count", 1U));
+    }
 }
 
 int main(int argc, char **argv)
@@ -173,8 +216,9 @@ int main(int argc, char **argv)
                     closeAt = std::chrono::steady_clock::now();
                     return true;
                 }
-                const bool completed = input.value("action", "") == "add-magnet"
-                    ? addMagnet(*window, input, phase) : controlSelected(*window, input, phase);
+                const std::string action = input.value("action", "");
+                const bool completed = action == "add-magnet" ? addMagnet(*window, input, phase)
+                    : (action == "remove" ? removeSelected(*window, input, phase) : controlSelected(*window, input, phase));
                 if (completed)
                 {
                     passed = true;

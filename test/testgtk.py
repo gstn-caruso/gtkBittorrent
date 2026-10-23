@@ -30,6 +30,45 @@ def runGtk(data: Mapping[str, Any]) -> subprocess.CompletedProcess[str]:
 
 
 class TestGtk(unittest.TestCase):
+    def testConfirmRemovalOfTheCapturedTorrentAndResetDeletionChoice(self) -> None:
+        for deleteFiles in (False, True):
+            with self.subTest(deleteFiles=deleteFiles):
+                self.checkRemoval(deleteFiles)
+
+    def checkRemoval(self, deleteFiles: bool) -> None:
+        identifier = "d" * 40
+        name = "archivo 日本語.bin"
+        torrents = [{"hash": "e" * 40, "name": "keep this torrent", "size": 1024, "progress": 1, "state": "stoppedUP"},
+                    {"hash": identifier, "name": name, "size": 32768, "progress": 0.5, "state": "stoppedDL"}]
+        removals: list[dict[str, list[str]]] = []
+        server = ApiServer()
+
+        def respond(method: str, path: str, body: bytes) -> tuple[int, bytes, dict[str, str]]:
+            if path == "/api/v2/auth/login":
+                return 200, b"Ok.", {}
+            if method == "GET" and path == "/api/v2/torrents/info":
+                return 200, json.dumps(torrents).encode(), {}
+            if path == "/api/v2/torrents/delete":
+                removals.append(urllib.parse.parse_qs(body.decode()))
+                torrents.pop()
+                return 200, b"", {}
+            return 404, b"", {}
+
+        server.provider = respond
+        thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
+        thread.start()
+        try:
+            result = runGtk({"url": f"http://127.0.0.1:{server.server_port}/", "username": "baseline",
+                             "password": secrets.token_urlsafe(24), "action": "remove", "hash": identifier,
+                             "name": name, "delete_files": deleteFiles})
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            self.assertEqual(removals, [{"hashes": [identifier], "deleteFiles": [str(deleteFiles).lower()]}])
+            self.assertEqual(torrents[0]["name"], "keep this torrent")
+        finally:
+            server.shutdown()
+            thread.join(timeout=2)
+            server.server_close()
+
     def testAddMagnetWithUnicodeDestinationAfterCancelAndInvalidInput(self) -> None:
         identifier = "c" * 40
         name = "descarga 日本語"
@@ -171,6 +210,34 @@ class TestGtk(unittest.TestCase):
                 self.assertEqual(Path(added["save_path"]), destination)
             finally:
                 session.close()
+
+    def testNativeRemovalKeepsFilesUnlessDeletionIsExplicit(self) -> None:
+        if engine is None:
+            self.skipTest("Run with --engine to exercise the actual headless engine")
+        testsession.binary = engine
+        for deleteFiles in (False, True):
+            with self.subTest(deleteFiles=deleteFiles), tempfile.TemporaryDirectory(prefix="gtkbt-gtk-removal-") as directory:
+                session = testsession.Session(Path(directory))
+                try:
+                    torrent, identifier, firstPiece = testsession.torrentFixture()
+                    payload = session.destination / "archivo 日本語.bin"
+                    content = firstPiece + b"\x00" * 16384
+                    payload.write_bytes(content)
+                    session.start()
+                    session.login()
+                    session.upload(torrent)
+                    testsession.waitFor(session.torrents, lambda items: len(items) == 1)
+                    result = runGtk({"url": session.url, "username": "baseline", "password": session.password,
+                                     "action": "remove", "hash": identifier, "name": payload.name,
+                                     "delete_files": deleteFiles, "remaining_count": 0})
+                    self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+                    self.assertEqual(session.torrents(), [])
+                    if deleteFiles:
+                        testsession.waitFor(payload.exists, lambda exists: not exists)
+                    else:
+                        self.assertEqual(payload.read_bytes(), content)
+                finally:
+                    session.close()
 
 
 if __name__ == "__main__":

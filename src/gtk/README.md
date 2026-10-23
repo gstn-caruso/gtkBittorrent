@@ -30,9 +30,11 @@ Connection and operation status
 ```
 
 The preview verifies connection, live torrent rows, selected-torrent start/stop,
-and magnet addition. The native magnet dialog accepts a destination on the
+magnet addition, and removal. The native magnet dialog accepts a destination on the
 engine and an optional stopped state; cancel and invalid links send no request.
-File/removal dialogs, filtering/sorting, automatic backend ownership, packaging,
+Removal identifies the selected torrent and keeps its files by default; deleting
+files requires a fresh explicit choice in its confirmation dialog.
+File addition, filtering/sorting, automatic backend ownership, packaging,
 and feature parity remain required follow-up work. The release target
 is GTK 4.24.1; the initial local trial uses GTK 4.22.4 and gtkmm 4.20.0 available
 on the development machine. Final GTK dependency pinning remains unverified.
@@ -67,3 +69,5 @@ external engine running and its half-complete payload intact. Authentication
 failure tests check the visible error and disabled torrent controls.
 Magnet tests exercise cancel, invalid input, Unicode destinations, and addition
 to a real engine without public trackers or peer discovery.
+Removal tests verify cancel, a changed selection during confirmation, resetting
+the deletion choice, and real file preservation/deletion in disposable sessions.

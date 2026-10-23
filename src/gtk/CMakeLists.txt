@@ -6,7 +6,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTKMM REQUIRED IMPORTED_TARGET gtkmm-4.0>=4.20)
 add_subdirectory("../engine" "engine")
 
-add_library(gtkbittorrent_gtk STATIC magnetdialog.cpp window.cpp torrentrow.cpp)
+add_library(gtkbittorrent_gtk STATIC magnetdialog.cpp removaldialog.cpp window.cpp torrentrow.cpp)
 target_compile_features(gtkbittorrent_gtk PUBLIC cxx_std_20)
 target_include_directories(gtkbittorrent_gtk PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/..")
 target_link_libraries(gtkbittorrent_gtk PUBLIC PkgConfig::GTKMM gtkbittorrent_engine_client)

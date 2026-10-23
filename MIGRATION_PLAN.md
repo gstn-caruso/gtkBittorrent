@@ -34,6 +34,8 @@ delivered.
   selected torrents through actual widgets against a real disposable engine.
 - [x] Add a native magnet dialog and verify cancel, invalid input, Unicode
   destinations, and stopped additions against a disposable real engine.
+- [x] Confirm removal of a captured torrent ID, preserve files by default, and
+  verify explicit deletion and cancellation through native GTK controls.
 - [x] Publish/download the first CI-tested prerelease and verify its checksums
   and real-engine session/import behavior locally.
 - [ ] Complete the remaining behavior baseline, including proxy/DNS handling.
@@ -77,10 +79,13 @@ worker tests pass under address/undefined-behavior sanitizers; the worker tests
 also pass under ThreadSanitizer. CI now includes these checks and security
 analysis, and release builds exercise the client against the newly built engine.
 The [native GTK preview](src/gtk/README.md) now consumes these events in a
-`ColumnView` and controls selected torrents. Five local UI cases cover Unicode
+`ColumnView` and controls selected torrents. Seven local UI cases cover Unicode
 rendering/selection, authentication failures, real partial-download controls,
-and the magnet dialog against both a test API and the real engine under isolated
-D-Bus/Xvfb. The window follows GTK theme settings, retains selected
+magnet addition, and removal against both a test API and the real engine under
+isolated D-Bus/Xvfb. Removal confirmation retains its original target even when
+selection changes, defaults to preserving files, and clears the deletion choice
+when reopened. Real sessions verify both preserved bytes and explicit deletion.
+The window follows GTK theme settings, retains selected
 IDs across updates, and joins workers after its application loop exits. Process
 lifecycle/profile ownership, advanced API operations, and a usable packaged GTK
 application remain pending; this does not complete stages 3 or 4.
@@ -97,8 +102,10 @@ The native GTK build, widget tests, and security analysis passed in
 including a clean container without Qt development packages. Its file-health
 job rejected GLib's valid `G_DEBUG="fatal-criticals"` token as a spelling error.
 A narrow spelling exception now passes the same pinned checker locally; the
-runtime setting remains enabled. The corrected source needs another main run
-before automatic publication can be verified.
+runtime setting remains enabled. The corrected run
+[39898806131](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39898806131)
+has passed file-health and native GTK checks; inspect the remaining jobs before
+automatic publication can be verified.
 The earlier [manual run](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39887360562)
 is also terminal; the current source includes its verified fixes. Preserve the
 full migration scope and use targeted tests for each change. The downloaded and
@@ -108,7 +115,7 @@ available. Earlier build/runtime logs remain under `build/release-verified` and
 `build/release-runtime-*.log`. Inspect the worktree and remote state before
 continuing.
 
-Next implement GTK file/removal dialogs, filtering/sorting, and managed
+Next implement GTK file addition, filtering/sorting, and managed
 backend/profile ownership. The current preview connects to externally owned
 engines and is available from source, not in the release package. Local GTK UI
 checks and a rendered screenshot are under `build/gtk-preview`. GTK 4.24.1

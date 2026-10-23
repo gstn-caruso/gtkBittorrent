@@ -7,6 +7,7 @@
 
 #include "engine/worker.h"
 #include "magnetdialog.h"
+#include "removaldialog.h"
 #include "torrentrow.h"
 
 namespace Gui
@@ -40,12 +41,14 @@ namespace Gui
         Gtk::Button m_addMagnet;
         Gtk::Button m_start;
         Gtk::Button m_stop;
+        Gtk::Button m_remove;
         Gtk::ScrolledWindow m_scroll;
         Gtk::ColumnView m_view;
         Gtk::Box m_footer;
         Gtk::Label m_status;
         Gtk::Label m_count;
         MagnetDialog m_magnetDialog;
+        RemovalDialog m_removalDialog;
         Glib::RefPtr<Gio::ListStore<TorrentRow>> m_rows;
         Glib::RefPtr<Gtk::SingleSelection> m_selection;
         std::unique_ptr<Engine::Worker> m_worker;
