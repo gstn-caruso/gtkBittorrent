@@ -56,6 +56,7 @@ int main(int argc, char **argv)
     int phase = 0;
     bool passed = false;
     std::string failure;
+    auto closeAt = std::chrono::steady_clock::time_point::max();
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(15);
     application->signal_activate().connect([&]()
     {
@@ -68,8 +69,29 @@ int main(int argc, char **argv)
         widget<Gtk::Button>(*window, "connect-engine").activate();
         timer = Glib::signal_timeout().connect([&]()
         {
+            if (passed)
+            {
+                if (std::chrono::steady_clock::now() >= closeAt)
+                {
+                    window->close();
+                    return false;
+                }
+                return true;
+            }
             try
             {
+                if (input.value("expect_auth_failure", false)
+                    && displays(*window, "Could not sign in. Check your username and password."))
+                {
+                    if (widget<Gtk::Button>(*window, "start-torrent").get_sensitive()
+                        || widget<Gtk::Button>(*window, "stop-torrent").get_sensitive())
+                    {
+                        throw std::runtime_error("Torrent controls remained enabled after authentication failed");
+                    }
+                    passed = true;
+                    closeAt = std::chrono::steady_clock::now();
+                    return true;
+                }
                 auto &view = widget<Gtk::ColumnView>(*window, "torrent-list");
                 const auto selection = std::dynamic_pointer_cast<Gtk::SingleSelection>(view.get_model());
                 if (selection && (selection->get_n_items() == input.value("count", 2U)))
@@ -96,8 +118,8 @@ int main(int argc, char **argv)
                         else if ((phase == 2) && (row->snapshot().state == "stoppedDL"))
                         {
                             passed = true;
-                            window->close();
-                            return false;
+                            closeAt = std::chrono::steady_clock::now() + std::chrono::milliseconds(input.value("hold_ms", 0));
+                            return true;
                         }
                     }
                 }

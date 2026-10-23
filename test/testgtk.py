@@ -22,13 +22,29 @@ engine: Path | None = None
 
 def runGtk(data: Mapping[str, Any]) -> subprocess.CompletedProcess[str]:
     with tempfile.TemporaryDirectory(prefix="gtkbt-gtk-") as directory:
-        environment = dict(os.environ, G_DEBUG="fatal-criticals", GSK_RENDERER="cairo")
+        environment = dict(os.environ, G_DEBUG="fatal-criticals", GSK_RENDERER="cairo", GDK_BACKEND="x11")
+        environment.pop("WAYLAND_DISPLAY", None)
         for name in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"):
             environment[name] = str(Path(directory) / name)
         return subprocess.run([str(probe)], input=json.dumps(data), env=environment, text=True, capture_output=True, timeout=25, check=False)  # nosec B603 # Explicit locally built GTK test binary.
 
 
 class TestGtk(unittest.TestCase):
+    def testExplainAuthenticationFailureAndDisableTorrentControls(self) -> None:
+        server = ApiServer()
+        server.responses = [(401, b"", {})]
+        thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
+        thread.start()
+        try:
+            result = runGtk({"url": f"http://127.0.0.1:{server.server_port}/", "username": "baseline",
+                             "password": secrets.token_urlsafe(24), "expect_auth_failure": True})
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            self.assertEqual(len(server.requests), 1)
+        finally:
+            server.shutdown()
+            thread.join(timeout=2)
+            server.server_close()
+
     def testDisplayUnicodeAndControlOnlyTheSelectedTorrent(self) -> None:
         password = secrets.token_urlsafe(24)
         identifier = "a" * 40

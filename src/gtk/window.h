@@ -47,6 +47,7 @@ namespace Gui
         std::unique_ptr<Engine::Worker> m_worker;
         std::vector<std::unique_ptr<Engine::Worker>> m_retired;
         sigc::connection m_timer;
+        sigc::connection m_selectionChanged;
         bool m_connected = false;
     };
 }

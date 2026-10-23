@@ -173,7 +173,7 @@ namespace Gui
         m_toolbar.append(m_stop);
         m_selection->set_autoselect(false);
         m_selection->set_can_unselect(true);
-        m_selection->signal_selection_changed().connect([this](unsigned int, unsigned int) { updateControls(); });
+        m_selectionChanged = m_selection->signal_selection_changed().connect([this](unsigned int, unsigned int) { updateControls(); });
         m_view.set_name("torrent-list");
         m_view.set_model(m_selection);
         m_view.add_css_class("data-table");
@@ -186,6 +186,7 @@ namespace Gui
         m_scroll.set_vexpand(true);
         m_footer.set_margin(12);
         m_status.set_xalign(0);
+        m_status.set_name("connection-status");
         m_status.set_hexpand(true);
         m_count.set_xalign(1);
         m_footer.append(m_status);
@@ -201,6 +202,8 @@ namespace Gui
     Window::~Window()
     {
         m_timer.disconnect();
+        m_selectionChanged.disconnect();
+        m_view.set_model({});
         if (m_worker)
             m_worker->requestStop();
         for (const auto &worker : m_retired)
