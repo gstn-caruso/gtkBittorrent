@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -29,7 +30,27 @@ namespace Engine
         TorrentId id;
     };
 
-    using Command = std::variant<Stop, Start>;
+    struct Remove
+    {
+        TorrentId id;
+        bool deleteFiles;
+    };
+
+    struct AddMagnet
+    {
+        std::string magnet;
+        std::string savePath;
+        bool stopped;
+    };
+
+    struct AddTorrent
+    {
+        std::vector<std::byte> torrent;
+        std::string savePath;
+        bool stopped;
+    };
+
+    using Command = std::variant<Stop, Start, Remove, AddMagnet, AddTorrent>;
 
     struct Connected {};
 

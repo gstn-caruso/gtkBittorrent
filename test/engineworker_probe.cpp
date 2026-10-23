@@ -1,6 +1,10 @@
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
+#include <fstream>
 #include <iostream>
+#include <iterator>
+#include <span>
 #include <string>
 #include <thread>
 #include <variant>
@@ -26,6 +30,24 @@ int main()
     if (input.contains("start"))
     {
         worker.submit(Engine::Start {Engine::TorrentId(input.at("start").get<std::string>())});
+        ++submitted;
+    }
+    if (input.contains("remove"))
+    {
+        worker.submit(Engine::Remove {Engine::TorrentId(input.at("remove").get<std::string>()), input.value("delete_files", false)});
+        ++submitted;
+    }
+    if (input.contains("magnet"))
+    {
+        worker.submit(Engine::AddMagnet {input.at("magnet").get<std::string>(), input.at("save_path").get<std::string>(), true});
+        ++submitted;
+    }
+    if (input.contains("torrent"))
+    {
+        std::ifstream file(input.at("torrent").get<std::string>(), std::ios::binary);
+        const std::string bytes {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+        const std::span<const std::byte> data = std::as_bytes(std::span(bytes));
+        worker.submit(Engine::AddTorrent {{data.begin(), data.end()}, input.at("save_path").get<std::string>(), true});
         ++submitted;
     }
     if (input.value("stop_before_connect", false))

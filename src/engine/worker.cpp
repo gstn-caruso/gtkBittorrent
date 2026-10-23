@@ -21,6 +21,21 @@ namespace
     {
         client.start(command.id);
     }
+
+    void execute(Engine::Client &client, const Engine::Remove &command)
+    {
+        client.remove(command.id, command.deleteFiles);
+    }
+
+    void execute(Engine::Client &client, const Engine::AddMagnet &command)
+    {
+        client.addMagnet(command.magnet, command.savePath, command.stopped);
+    }
+
+    void execute(Engine::Client &client, const Engine::AddTorrent &command)
+    {
+        client.addTorrent(command.torrent, command.savePath, command.stopped);
+    }
 }
 
 namespace Engine

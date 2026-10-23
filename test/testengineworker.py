@@ -4,6 +4,7 @@ import argparse
 import json
 import secrets
 import subprocess  # nosec B404 # Exercise the locally built worker probe.
+import tempfile
 import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
@@ -104,6 +105,18 @@ class TestEngineWorker(unittest.TestCase):
         self.server.responses = [(200, b"", {}), (200, b"[]", {})]
         self.invokeBlocked(stop=None, poll_ms=60000)
         self.assertEqual(len(self.server.requests), 2)
+
+    def testCarryAdditionAndRemovalChoicesAcrossTheWorkerQueue(self) -> None:
+        self.server.responses = [(200, b"", {}), (200, b"[]", {}),
+                                 *[(200, body, {}) for body in (b"", b"[]", b"Ok.", b"[]", b"Ok.", b"[]")]]
+        with tempfile.TemporaryDirectory(prefix="gtkbt-worker-upload-") as directory:
+            torrent = Path(directory) / "fixture.torrent"
+            torrent.write_bytes(b"metadata\x00\xff")
+            events = self.invokeBlocked(stop=None, remove="a" * 40, magnet="magnet:?xt=urn:btih:" + "b" * 40,
+                                         torrent=str(torrent), save_path="/downloads/日本語")["events"]
+            self.assertEqual([event["id"] for event in events if event["type"] == "accepted"], [1, 2, 3])
+            self.assertIn(b"deleteFiles=false", self.server.requests[2][3])
+            self.assertIn(torrent.read_bytes(), self.server.requests[6][3])
 
 
 if __name__ == "__main__":
