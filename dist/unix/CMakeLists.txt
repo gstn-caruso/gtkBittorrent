@@ -11,8 +11,8 @@ if (SYSTEMD)
         endif()
     endif()
     set(EXPAND_BINDIR ${CMAKE_INSTALL_FULL_BINDIR})
-    configure_file(systemd/qbittorrent-nox@.service.in ${CMAKE_CURRENT_BINARY_DIR}/qbittorrent-nox@.service @ONLY)
-    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/qbittorrent-nox@.service"
+    configure_file(systemd/gtkbittorrent-engine@.service.in ${CMAKE_CURRENT_BINARY_DIR}/gtkbittorrent-engine@.service @ONLY)
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/gtkbittorrent-engine@.service"
         DESTINATION ${SYSTEMD_SERVICES_INSTALL_DIR}
         COMPONENT data
     )
@@ -29,34 +29,46 @@ foreach(manPageLanguage ${manPageLanguages})
         # in other languages are installed into ${CMAKE_INSTALL_MANDIR}/${manPageLanguage}/man1.
         DESTINATION ${CMAKE_INSTALL_MANDIR}/$<$<NOT:$<STREQUAL:${manPageLanguage},en>>:${manPageLanguage}/>man1
         COMPONENT doc
+        RENAME $<IF:$<BOOL:${GUI}>,gtkbittorrent.1,gtkbittorrent-engine.1>
     )
 endforeach()
 
 if (GUI)
-    install(FILES org.qbittorrent.qBittorrent.desktop
+    file(READ org.qbittorrent.qBittorrent.desktop desktopEntry)
+    string(REPLACE "qBittorrent" "gtkBittorrent" desktopEntry "${desktopEntry}")
+    string(REPLACE "qbittorrent" "gtkbittorrent" desktopEntry "${desktopEntry}")
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/io.github.gstn_caruso.gtkBittorrent.desktop" "${desktopEntry}")
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/io.github.gstn_caruso.gtkBittorrent.desktop"
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
         COMPONENT data
     )
 
-    install(FILES org.qbittorrent.qBittorrent.metainfo.xml
+    install(FILES io.github.gstn_caruso.gtkBittorrent.metainfo.xml
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/metainfo
         COMPONENT data
     )
 
-    install(DIRECTORY menuicons/
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor
-        COMPONENT data
-    )
+    file(GLOB_RECURSE menuIcons RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/menuicons" "menuicons/*")
+    foreach(icon IN LISTS menuIcons)
+        get_filename_component(iconDirectory "${icon}" DIRECTORY)
+        get_filename_component(iconName "${icon}" NAME)
+        string(REPLACE "qbittorrent" "gtkbittorrent" iconName "${iconName}")
+        install(FILES "menuicons/${icon}"
+            DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/${iconDirectory}"
+            RENAME "${iconName}"
+            COMPONENT data
+        )
+    endforeach()
 
-    install(FILES
-        ${PROJECT_SOURCE_DIR}/src/icons/qbittorrent-tray.svg
-        ${PROJECT_SOURCE_DIR}/src/icons/qbittorrent-tray-dark.svg
-        ${PROJECT_SOURCE_DIR}/src/icons/qbittorrent-tray-light.svg
-        DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/status
-        COMPONENT data
-    )
+    foreach(trayIcon IN ITEMS tray tray-dark tray-light)
+        install(FILES "${PROJECT_SOURCE_DIR}/src/icons/qbittorrent-${trayIcon}.svg"
+            DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/scalable/status
+            RENAME "gtkbittorrent-${trayIcon}.svg"
+            COMPONENT data
+        )
+    endforeach()
 else()
-    install(FILES org.qbittorrent.qBittorrent-nox.metainfo.xml
+    install(FILES io.github.gstn_caruso.gtkBittorrent.Engine.metainfo.xml
         DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/metainfo
         COMPONENT data
     )

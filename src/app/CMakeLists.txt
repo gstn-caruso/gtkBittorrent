@@ -67,15 +67,21 @@ target_link_libraries(qbt_app PRIVATE
 
 set_target_properties(qbt_app PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 if (GUI)
-    set_target_properties(qbt_app PROPERTIES OUTPUT_NAME qbittorrent)
+    set_target_properties(qbt_app PROPERTIES OUTPUT_NAME gtkbittorrent)
 else()
-    set_target_properties(qbt_app PROPERTIES OUTPUT_NAME qbittorrent-nox)
+    set_target_properties(qbt_app PROPERTIES OUTPUT_NAME gtkbittorrent-engine)
 endif()
 
 # Additional platform specific configuration
 # -----------------------------------------------------------------------------
 # -----------------------------------------------------------------------------
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    add_custom_target(gtkbittorrent_bundle_importer ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:gtkbittorrent_import>"
+            "$<TARGET_FILE_DIR:qbt_app>/gtkbittorrent-import"
+        DEPENDS qbt_app gtkbittorrent_import
+        VERBATIM
+    )
     include(FindQtTranslations)
     qbt_get_qt_translations(QT_TRANSLATIONS)
     set_source_files_properties(${QT_TRANSLATIONS} PROPERTIES MACOSX_PACKAGE_LOCATION translations)
@@ -103,11 +109,17 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     endforeach()
     # provide variables for substitution in dist/mac/Info.plist
     get_target_property(EXECUTABLE_NAME qbt_app OUTPUT_NAME)
+    set(APPLICATION_BUNDLE_ID "io.github.gstn_caruso.gtkBittorrent")
+    set(APPLICATION_DISPLAY_NAME "gtkBittorrent")
+    if (NOT GUI)
+        string(APPEND APPLICATION_BUNDLE_ID ".Engine")
+        string(APPEND APPLICATION_DISPLAY_NAME " Engine")
+    endif()
     # This variable name should be changed once qmake is no longer used. Refer to the discussion in PR #14813
     set(MACOSX_DEPLOYMENT_TARGET ${CMAKE_OSX_DEPLOYMENT_TARGET})
     set_target_properties(qbt_app PROPERTIES
         MACOSX_BUNDLE ON
-        MACOSX_BUNDLE_BUNDLE_NAME "qBittorrent"
+        MACOSX_BUNDLE_BUNDLE_NAME "${APPLICATION_DISPLAY_NAME}"
         MACOSX_BUNDLE_INFO_PLIST ${qBittorrent_SOURCE_DIR}/dist/mac/Info.plist
     )
     target_sources(qbt_app PRIVATE

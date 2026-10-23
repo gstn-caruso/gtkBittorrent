@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>qBittorrent</string>
+	<string>${APPLICATION_DISPLAY_NAME}</string>
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -47,11 +47,11 @@
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>org.qbittorrent.qBittorrent.incompletedata</string>
+				<string>io.github.gstn_caruso.gtkBittorrent.incompletedata</string>
 			</array>
 			<key>NSExportableTypes</key>
 			<array>
-				<string>org.qbittorrent.qBittorrent.incompletedata</string>
+				<string>io.github.gstn_caruso.gtkBittorrent.incompletedata</string>
 			</array>
 			<key>LSIsAppleDefaultForType</key>
 			<true/>
@@ -71,7 +71,7 @@
 		</dict>
 	</array>
 	<key>CFBundleName</key>
-	<string>qBittorrent</string>
+	<string>${APPLICATION_DISPLAY_NAME}</string>
 	<key>CFBundleIconFile</key>
 	<string>qbittorrent_mac.icns</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -83,7 +83,7 @@
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
 	<key>CFBundleIdentifier</key>
-	<string>org.qbittorrent.qBittorrent</string>
+	<string>${APPLICATION_BUNDLE_ID}</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>${MACOSX_DEPLOYMENT_TARGET}.0</string>
 	<key>NSPrincipalClass</key>
@@ -136,7 +136,7 @@
 			<key>UTTypeIconFile</key>
 			<string>qBitTorrentIncompleteData</string>
 			<key>UTTypeIdentifier</key>
-			<string>org.qbittorrent.qBittorrent.incompletedata</string>
+			<string>io.github.gstn_caruso.gtkBittorrent.incompletedata</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>

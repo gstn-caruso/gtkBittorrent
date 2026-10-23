@@ -26,6 +26,7 @@ from typing import Any, TypeVar, cast
 T = TypeVar("T")
 binary: Path
 fixtureOutput: Path | None = None
+importer: Path | None = None
 
 
 def waitFor(operation: Callable[[], T], ready: Callable[[T], bool]) -> T:
@@ -42,9 +43,9 @@ def waitFor(operation: Callable[[], T], ready: Callable[[T], bool]) -> T:
 class Session:
     def __init__(self, root: Path, storage: str = "Legacy") -> None:
         self.root = root
-        self.profile = root / "qBittorrent"
+        self.profile = root / "gtkBittorrent"
         extension = ".ini" if sys.platform in ("win32", "darwin") else ".conf"
-        self.config = self.profile / "config" / ("qBittorrent" + extension)
+        self.config = self.profile / "config" / ("gtkBittorrent" + extension)
         self.config.parent.mkdir(parents=True)
         self.destination = root / "descargas 日本語"
         self.destination.mkdir()
@@ -90,7 +91,7 @@ class Session:
     def start(self) -> None:
         environment = os.environ.copy()
         for name in tuple(environment):
-            if name.startswith("QBT_"):
+            if name.startswith(("QBT_", "GTKB_")):
                 del environment[name]
         for name in ("XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME"):
             environment[name] = str(self.root / name)
@@ -181,6 +182,35 @@ def torrentFixture() -> tuple[bytes, str, bytes]:
 
 
 class TestSession(unittest.TestCase):
+    def testExplicitProfileImport(self) -> None:
+        if importer is None:
+            self.skipTest("Run with --importer to verify explicit profile import")
+        for storage in ("legacy", "sqlite"):
+            with self.subTest(storage=storage), tempfile.TemporaryDirectory(prefix="gtkbt-explicit-import-") as directory:
+                session = Session(Path(directory), "SQLite" if storage == "sqlite" else "Legacy")
+                try:
+                    legacy = session.root / "qBittorrent"
+                    session.profile.rename(legacy)
+                    oldConfig = legacy / "config" / session.config.name
+                    oldConfig.rename(oldConfig.with_stem("qBittorrent"))
+                    fixture = Path(__file__).parent / "testdata" / "session" / storage
+                    shutil.copytree(fixture / "qBittorrent" / "data", legacy / "data")
+                    shutil.copytree(fixture / "descargas 日本語", session.destination, dirs_exist_ok=True)
+                    before = {str(path.relative_to(legacy)): path.read_bytes() for path in legacy.rglob("*") if path.is_file()}
+                    result = subprocess.run(  # nosec B603 # Explicit locally built importer without a shell.
+                        [str(importer), str(legacy), str(session.profile)], capture_output=True, timeout=10, check=False,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    session.start()
+                    session.login()
+                    torrents = waitFor(session.torrents,
+                                       lambda items: len(items) == 1 and items[0]["state"] == "stoppedDL")
+                    self.assertRestoredTorrent(session, torrents[0])
+                    session.stop()
+                    self.assertEqual({str(path.relative_to(legacy)): path.read_bytes() for path in legacy.rglob("*") if path.is_file()}, before)
+                finally:
+                    session.close()
+
     def testDownloadFromLocalPeer(self) -> None:
         with tempfile.TemporaryDirectory(prefix="gtkbt-transfer-") as directory:
             root = Path(directory)
@@ -231,7 +261,7 @@ class TestSession(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="gtkbt-settings-") as directory:
             session = Session(Path(directory))
             try:
-                fallback = session.config.with_stem("qBittorrent_new")
+                fallback = session.config.with_stem("gtkBittorrent_new")
                 fallback.write_text(session.config.read_text(encoding="utf-8")
                                     + "\n[BitTorrent]\nSession\\GlobalDLSpeedLimit=73\n", encoding="utf-8")
                 session.start()
@@ -322,7 +352,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True)
     parser.add_argument("--fixture-output", type=Path, help="Export resume fixtures before restarting")
+    parser.add_argument("--importer", type=Path, help="Verify explicit profile import before starting the engine")
     arguments, remaining = parser.parse_known_args()
     binary = arguments.binary.resolve(strict=True)
     fixtureOutput = arguments.fixture_output
+    importer = arguments.importer.resolve(strict=True) if arguments.importer is not None else None
     unittest.main(argv=[__file__, *remaining])

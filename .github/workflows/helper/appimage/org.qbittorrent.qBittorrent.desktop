@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=qBittorrent
-Exec=qbittorrent-nox %U
-Icon=qbittorrent
+Name=gtkBittorrent
+Exec=gtkbittorrent-engine %U
+Icon=gtkbittorrent
 Type=Application
 Categories=Network

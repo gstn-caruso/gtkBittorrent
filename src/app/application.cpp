@@ -91,6 +91,7 @@
 #include "base/utils/os.h"
 #include "base/utils/string.h"
 #include "base/version.h"
+#include "applicationidentity.h"
 #include "applicationinstancemanager.h"
 #include "filelogger.h"
 #include "upgrade.h"
@@ -317,10 +318,10 @@ Application::Application(int &argc, char **argv)
     qRegisterMetaType<Log::Msg>("Log::Msg");
     qRegisterMetaType<Log::Peer>("Log::Peer");
 
-    setApplicationName(u"qBittorrent"_s);
-    setOrganizationDomain(u"qbittorrent.org"_s);
+    setApplicationName(QString::fromLatin1(GtkBittorrent::applicationName));
+    setOrganizationDomain(QString::fromLatin1(GtkBittorrent::organizationDomain));
 #if !defined(DISABLE_GUI)
-    setDesktopFileName(u"org.qbittorrent.qBittorrent"_s);
+    setDesktopFileName(QString::fromLatin1(GtkBittorrent::applicationId));
     setQuitOnLastWindowClosed(false);
     setQuitLockEnabled(false);
     QPixmapCache::setCacheLimit(PIXMAP_CACHE_SIZE);

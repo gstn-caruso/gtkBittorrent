@@ -1,7 +1,10 @@
 find_package(Qt6 REQUIRED COMPONENTS Test)
 
 enable_testing(true)
-add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure)
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
+add_dependencies(check gtkbittorrent_import)
 
 include_directories("../src")
 
@@ -45,10 +48,21 @@ if (WEBUI AND NOT GUI)
     add_test(NAME testsession
         COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/testsession.py"
             --binary "$<TARGET_FILE:qbt_app>"
+            --importer "$<TARGET_FILE:gtkbittorrent_import>"
     )
     set_tests_properties(testsession PROPERTIES
         LABELS "integration;session"
         TIMEOUT 180
     )
+    add_dependencies(check qbt_app)
+endif()
+
+if (NOT WIN32 OR NOT GUI)
+    find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+    add_test(NAME testidentity
+        COMMAND "${Python3_EXECUTABLE}" -B "${CMAKE_CURRENT_SOURCE_DIR}/testidentity.py"
+            --binary "$<TARGET_FILE:qbt_app>"
+    )
+    set_tests_properties(testidentity PROPERTIES LABELS "integration;identity" TIMEOUT 30)
     add_dependencies(check qbt_app)
 endif()

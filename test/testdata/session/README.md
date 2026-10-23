@@ -26,9 +26,13 @@ does not prove that old sessions remain readable.
 To reproduce fresh fixtures for investigation, use a separate output directory:
 
 ```sh
-python3 -B test/testsession.py --binary build/baseline/qbittorrent-nox \
+git show 3ef8187b9:test/testsession.py > build/inherited-testsession.py
+python3 -B build/inherited-testsession.py --binary /path/to/inherited/qbittorrent-nox \
     --fixture-output build/session-fixtures-new TestSession.testRestartPreservesPartialDownload
 ```
+
+Use the recorded harness revision and an inherited binary so the fixture
+producer retains qBittorrent's original profile identity.
 
 The exporter excludes GeoIP databases and logs. Authentication uses a new random
 password for every temporary profile; credentials are not exported. Resume

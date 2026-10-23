@@ -5,7 +5,7 @@
 ; Doing so may make antivirus software flag the installer as virus/malware
 ;!define USE_UPX
 
-; qBittorrent version
+; gtkBittorrent version
 ; The string MUST contain ONLY numbers delimited by dots.
 ; It MUST contain a maximum of 4 delimited numbers
 ; Other values will result in undefined behavior
@@ -18,7 +18,7 @@
 
 ; Option that controls the installer's window name
 ; If set, its value will be used like this:
-; "qBittorrent ${QBT_INSTALLER_FILENAME}"
+; "gtkBittorrent ${QBT_INSTALLER_FILENAME}"
 ; If not set, the window name will be auto composed from QBT_VERSION
 ; If you set this define then you MUST set QBT_INSTALLER_FILENAME too. Otherwise it will be ignored.
 ; This define is meant to ease automation from scripts/commandline
@@ -26,7 +26,7 @@
 
 ; Option that controls the installer's window name
 ; If set, its value will be used like this:
-; "qbittorrent_${QBT_INSTALLER_FILENAME}_setup.exe"
+; "gtkbittorrent_${QBT_INSTALLER_FILENAME}_setup.exe"
 ; If not set, the installer filename will be auto composed from QBT_VERSION
 ; If you set this define then you MUST set QBT_INSTALLER_WINDOWNAME too. Otherwise it will be ignored.
 ; This define is meant to ease automation from scripts/commandline
@@ -46,7 +46,7 @@
   !define QBT_INSTALLER_FILENAME "${QBT_VERSION}_${QBT_CPU_ARCH}"
 !endif
 
-!define /ifndef QBT_DIST_DIR "qBittorrent"
+!define /ifndef QBT_DIST_DIR "gtkBittorrent"
 !define /ifndef QBT_NSIS_PLUGINS_DIR "NSISPlugins"
 
 Unicode true
@@ -82,16 +82,16 @@ SetCompressorDictSize 64
 !define MUI_FINISHPAGE_RUN_TEXT $(launch_qbt)
 
 ; The name of the installer
-Name "qBittorrent ${QBT_INSTALLER_WINDOWNAME}"
+Name "gtkBittorrent ${QBT_INSTALLER_WINDOWNAME}"
 
 ; The file to write
-OutFile "qbittorrent_${QBT_INSTALLER_FILENAME}_setup.exe"
+OutFile "gtkbittorrent_${QBT_INSTALLER_FILENAME}_setup.exe"
 
 ;Installer Version Information
-VIAddVersionKey "ProductName" "qBittorrent"
-VIAddVersionKey "CompanyName" "The qBittorrent project"
+VIAddVersionKey "ProductName" "gtkBittorrent"
+VIAddVersionKey "CompanyName" "The gtkBittorrent project"
 VIAddVersionKey "LegalCopyright" "Copyright ©2006-2026 The qBittorrent project"
-VIAddVersionKey "FileDescription" "qBittorrent - A Bittorrent Client"
+VIAddVersionKey "FileDescription" "gtkBittorrent - A Bittorrent Client"
 VIAddVersionKey "FileVersion" "${QBT_VERSION}"
 
 ; VIProductVersion needs a 4 part version.
@@ -100,11 +100,11 @@ ${VersionCompleteXXXX} ${QBT_VERSION} VERSION_4_PART
 VIProductVersion "${VERSION_4_PART}"
 
 ; The default installation directory.
-InstallDir $PROGRAMFILES64\qBittorrent
+InstallDir $PROGRAMFILES64\gtkBittorrent
 
 ; Registry key to check for directory (so if you install again, it will
 ; overwrite the old one automatically)
-InstallDirRegKey HKLM Software\qbittorrent InstallLocation
+InstallDirRegKey HKLM Software\gtkbittorrent InstallLocation
 
 ; Request application privileges for Windows Vista
 RequestExecutionLevel user
@@ -114,7 +114,7 @@ RequestExecutionLevel user
 !define MUI_ABORTWARNING
 !define MUI_HEADERIMAGE
 !define MUI_COMPONENTSPAGE_NODESC
-;!define MUI_ICON "qbittorrent.ico"
+;!define MUI_ICON "gtkbittorrent.ico"
 !define MUI_LICENSEPAGE_BUTTON $(^NextBtn)
 !define MUI_LICENSEPAGE_TEXT_BOTTOM "$_CLICK"
 !define MUI_LANGDLL_ALLLANGUAGES
@@ -122,7 +122,7 @@ RequestExecutionLevel user
 ;--------------------------------
 ;Remember the uninstaller/installer language
 !define MUI_LANGDLL_REGISTRY_ROOT "HKLM"
-!define MUI_LANGDLL_REGISTRY_KEY "Software\qbittorrent"
+!define MUI_LANGDLL_REGISTRY_KEY "Software\gtkbittorrent"
 !define MUI_LANGDLL_REGISTRY_VALUENAME "Installer Language"
 
 ;--------------------------------

@@ -1,0 +1,15 @@
+[Unit]
+Description=gtkBittorrent engine for user %I
+Documentation=man:gtkbittorrent-engine(1)
+Wants=network-online.target
+After=local-fs.target network-online.target nss-lookup.target
+
+[Service]
+Type=simple
+PrivateTmp=false
+User=%i
+ExecStart=@EXPAND_BINDIR@/gtkbittorrent-engine
+TimeoutStopSec=1800
+
+[Install]
+WantedBy=multi-user.target

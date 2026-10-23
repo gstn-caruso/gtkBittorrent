@@ -32,6 +32,7 @@
 #include <chrono>
 #include <memory>
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QHash>
 #include <QMetaObject>
@@ -48,7 +49,7 @@ using namespace std::chrono_literals;
 SettingsStorage *SettingsStorage::m_instance = nullptr;
 
 SettingsStorage::SettingsStorage()
-    : m_nativeSettingsName {u"qBittorrent"_s}
+    : m_nativeSettingsName {QCoreApplication::applicationName()}
 {
     readNativeSettings();
 

@@ -1,59 +1,48 @@
-# qBittorrent - A BitTorrent client in Qt
+# gtkBittorrent
 
-[![GitHub Actions CI Status](https://github.com/qbittorrent/qBittorrent/actions/workflows/ci_ubuntu.yaml/badge.svg)](https://github.com/qbittorrent/qBittorrent/actions)
+gtkBittorrent is a C++20 BitTorrent client being migrated from qBittorrent to
+GTK and gtkmm while retaining libtorrent, saved sessions, and remote control.
+The desktop and headless engine currently still use Qt. The separate profile
+import tool already builds and runs without Qt.
 
-qBittorrent is a [BitTorrent] client programmed in C++ / Qt that uses
-[libtorrent] (sometimes called libtorrent-rasterbar) by Arvid Norberg.
+The migration scope, stages, and release policy are in
+[MIGRATION_PLAN.md](MIGRATION_PLAN.md). Verified behavior and remaining gates are
+recorded in [the migration baseline](test/MIGRATION_BASELINE.md).
 
-It aims to be a good alternative to all other BitTorrent clients
-out there. qBittorrent is fast, stable and provides Unicode
-support as well as many features.
+## Build and test
 
-The free [IP to Country Lite database] by [DB-IP] is used for resolving the countries of peers.
-The database is licensed under the [Creative Commons Attribution 4.0 International License].
+Install the dependencies listed in [INSTALL](INSTALL), then build the headless
+engine and its tests:
 
-[BitTorrent]: https://en.wikipedia.org/wiki/BitTorrent
-[Creative Commons Attribution 4.0 International License]: https://creativecommons.org/licenses/by/4.0/
-[DB-IP]: https://db-ip.com/
-[IP to Country Lite database]: https://db-ip.com/db/download/ip-to-country-lite
-[libtorrent]: https://libtorrent.org/
+```sh
+cmake -S . -B build/engine -G Ninja -DCMAKE_BUILD_TYPE=Debug -DGUI=OFF -DTESTING=ON
+cmake --build build/engine -j4
+ctest --test-dir build/engine --output-on-failure -j4
+```
 
-## Installation
+The executable is `build/engine/gtkbittorrent-engine`. With `GUI=ON`, the inherited
+Qt desktop application is built as `gtkbittorrent`. Both builds include
+`gtkbittorrent-import`. A native GTK interface remains a migration milestone.
 
-Refer to the [INSTALL] file.
+## Profiles
 
-[INSTALL]: INSTALL
+gtkBittorrent uses its own `gtkBittorrent` profile directories and settings files.
+It uses `GTKB_` environment variables for command line defaults, such as
+`GTKB_PROFILE` and `GTKB_WEBUI_PORT`. Existing `QBT_` variables belong to
+qBittorrent and are ignored.
 
-## License
+To import an old session, explicitly copy a closed profile with
+`gtkbittorrent-import`. Both custom profiles and separate default configuration
+and data directories are supported. See the [profile import guide](src/profile/README.md)
+for commands, portable paths, and an independent build without Qt.
 
-Refer to the [COPYING] file.
+## Upstream and license
 
-[COPYING]: COPYING
+This fork is based on [qBittorrent](https://github.com/qbittorrent/qBittorrent)
+5.4.0alpha1. Existing authorship and license notices remain in the sources.
+See [COPYING](COPYING) for the license and [AGENTS.md](AGENTS.md) for the
+contribution policy.
 
-## PGP Public Key
-
-Starting from v3.3.4 all source tarballs and binaries are signed. \
-The key currently used is 4096R/[5B7CC9A2](https://pgp.mit.edu/pks/lookup?op=get&search=0x6E4A2D025B7CC9A2) with fingerprint `D8F3DA77AAC6741053599C136E4A2D025B7CC9A2`. \
-You can also [download it](https://github.com/qbittorrent/qBittorrent/raw/master/5B7CC9A2.asc). \
-**PREVIOUSLY** the following key was used to sign the v3.3.4 source tarballs and v3.3.4 Windows installer **only**: 4096R/[520EC6F6](https://pgp.mit.edu/pks/lookup?op=get&search=0xA1ACCAE4520EC6F6) with fingerprint `F4A5FD201B117B1C2AB590E2A1ACCAE4520EC6F6`.
-
-## Misc
-
-For more information please visit:
-<https://www.qbittorrent.org>
-
-Check out our wiki at:
-<https://wiki.qbittorrent.org>
-
-Use the forum for troubleshooting before reporting bugs:
-<https://forum.qbittorrent.org>
-
-Please report any bug (or feature request) to:
-<https://bugs.qbittorrent.org>
-
-Official IRC channel:
-[#qbittorrent on irc.libera.chat](ircs://irc.libera.chat:6697/qbittorrent)
-
------------------------------------------------------
-
-sledgehammer999 \<<sledgehammer999@qbittorrent.org>\>
+The free IP to Country Lite database from [DB-IP](https://db-ip.com/) is used for
+peer country resolution and is licensed under
+[Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).

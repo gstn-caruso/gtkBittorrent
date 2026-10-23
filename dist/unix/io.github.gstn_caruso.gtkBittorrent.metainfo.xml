@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.gstn_caruso.gtkBittorrent</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later AND OpenSSL</project_license>
+  <name>gtkBittorrent</name>
+  <summary>A BitTorrent client migrating to GTK</summary>
+  <description>
+    <p>gtkBittorrent is a fork of qBittorrent migrating its interface and backend to GTK and C++.</p>
+    <p>This transitional build still uses the inherited Qt interface and backend.</p>
+  </description>
+  <launchable type="desktop-id">io.github.gstn_caruso.gtkBittorrent.desktop</launchable>
+  <provides><binary>gtkbittorrent</binary></provides>
+  <url type="homepage">https://github.com/gstn-caruso/gtkBittorrent</url>
+  <url type="vcs-browser">https://github.com/gstn-caruso/gtkBittorrent</url>
+  <developer id="io.github.gstn_caruso"><name>gtkBittorrent contributors</name></developer>
+  <content_rating type="oars-1.1"/>
+</component>

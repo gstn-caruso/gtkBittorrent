@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="console-application">
+  <id>io.github.gstn_caruso.gtkBittorrent.Engine</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later AND OpenSSL</project_license>
+  <name>gtkBittorrent Engine</name>
+  <summary>A headless BitTorrent engine with remote control</summary>
+  <description>
+    <p>The gtkBittorrent engine preserves qBittorrent's torrent session and Web API during the GTK migration.</p>
+    <p>This transitional build still requires Qt.</p>
+  </description>
+  <provides><binary>gtkbittorrent-engine</binary></provides>
+  <url type="homepage">https://github.com/gstn-caruso/gtkBittorrent</url>
+  <url type="vcs-browser">https://github.com/gstn-caruso/gtkBittorrent</url>
+  <developer id="io.github.gstn_caruso"><name>gtkBittorrent contributors</name></developer>
+  <content_rating type="oars-1.1"/>
+</component>

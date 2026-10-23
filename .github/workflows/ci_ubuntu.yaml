@@ -120,7 +120,7 @@ jobs:
           config-file: ./.github/workflows/helper/codeql/cpp.yaml
           languages: cpp
 
-      - name: Build qBittorrent
+      - name: Build gtkBittorrent
         run: |
           CFLAGS="$CFLAGS ${{ env.harden_flags }}" \
           CXXFLAGS="$CXXFLAGS ${{ env.harden_flags }} -DQT_FORCE_ASSERTS -Werror" \
@@ -139,9 +139,9 @@ jobs:
           cmake --build build
           cmake --build build --target check
           if [ "${{ matrix.qbt_gui }}" = "GUI=ON" ]; then
-            QT_QPA_PLATFORM=offscreen build/qbittorrent -v
+            QT_QPA_PLATFORM=offscreen build/gtkbittorrent -v
           else
-            build/qbittorrent-nox -v
+            build/gtkbittorrent-engine -v
           fi
           DESTDIR="qbittorrent" cmake --install build
 
@@ -194,9 +194,9 @@ jobs:
         if: matrix.qbt_gui == 'GUI=OFF'
         run: |
           mkdir -p qbittorrent/usr/share/applications
-          cp .github/workflows/helper/appimage/org.qbittorrent.qBittorrent.desktop qbittorrent/usr/share/applications/org.qbittorrent.qBittorrent.desktop
+          cp .github/workflows/helper/appimage/org.qbittorrent.qBittorrent.desktop qbittorrent/usr/share/applications/io.github.gstn_caruso.gtkBittorrent.Engine.desktop
           mkdir -p qbittorrent/usr/share/icons/hicolor/scalable/apps
-          cp dist/unix/menuicons/scalable/apps/qbittorrent.svg qbittorrent/usr/share/icons/hicolor/scalable/apps/qbittorrent.svg
+          cp dist/unix/menuicons/scalable/apps/qbittorrent.svg qbittorrent/usr/share/icons/hicolor/scalable/apps/gtkbittorrent.svg
 
       - name: Package AppImage
         run: |
@@ -206,11 +206,11 @@ jobs:
           rm -f qbittorrent/apprun-hooks/*
           cp .github/workflows/helper/appimage/export_vars.sh qbittorrent/apprun-hooks/export_vars.sh
           NO_APPSTREAM=1 \
-            OUTPUT=upload/qbittorrent-CI_Ubuntu_x86_64.AppImage \
+            OUTPUT=upload/gtkbittorrent-CI_Ubuntu_x86_64.AppImage \
             ./linuxdeploy-x86_64.AppImage --appdir qbittorrent --output appimage
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: qBittorrent-CI_Ubuntu-x64_${{ matrix.qbt_gui }}_libtorrent-${{ matrix.libtorrent.version }}_Qt-${{ matrix.qt_version }}
+          name: gtkBittorrent-CI_Ubuntu-x64_${{ matrix.qbt_gui }}_libtorrent-${{ matrix.libtorrent.version }}_Qt-${{ matrix.qt_version }}
           path: upload

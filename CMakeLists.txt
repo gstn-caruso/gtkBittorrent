@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR) # Policies <= CMP0097 default to NEW
 
 project(qBittorrent
-    DESCRIPTION "The qBittorrent BitTorrent client"
-    HOMEPAGE_URL "https://www.qbittorrent.org/"
+    DESCRIPTION "The gtkBittorrent BitTorrent client"
+    HOMEPAGE_URL "https://github.com/gstn-caruso/gtkBittorrent"
     LANGUAGES CXX
 )
 
@@ -60,10 +60,13 @@ include(CommonConfig)
 # Generate version header
 configure_file("src/base/version.h.in" "${CMAKE_CURRENT_SOURCE_DIR}/src/base/version.h" @ONLY)
 
+if (TESTING)
+    enable_testing()
+endif()
+
 add_subdirectory(src)
 add_subdirectory(dist)
 
 if (TESTING)
-    enable_testing()
     add_subdirectory(test)
 endif()

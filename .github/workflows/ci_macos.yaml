@@ -118,7 +118,7 @@ jobs:
           cmake --build build
           sudo cmake --install build
 
-      - name: Build qBittorrent
+      - name: Build gtkBittorrent
         run: |
           CXXFLAGS="$CXXFLAGS -DQT_FORCE_ASSERTS -Werror -Wno-error=deprecated-declarations -Wno-error=deprecated-literal-operator" \
           LDFLAGS="$LDFLAGS -gz" \
@@ -135,22 +135,23 @@ jobs:
           cmake --build build
           cmake --build build --target check
           if [ "${{ matrix.qbt_gui }}" = "GUI=ON" ]; then
-            build/qbittorrent.app/Contents/MacOS/qbittorrent -v
+            build/gtkbittorrent.app/Contents/MacOS/gtkbittorrent -v
           else
-            build/qbittorrent-nox.app/Contents/MacOS/qbittorrent-nox -v
+            build/gtkbittorrent-engine.app/Contents/MacOS/gtkbittorrent-engine -v
           fi
 
       - name: Prepare build artifacts
         run: |
-          appName="qbittorrent"
+          appName="gtkbittorrent"
           if [ "${{ matrix.qbt_gui }}" = "GUI=OFF" ]; then
-            appName="qbittorrent-nox"
+            appName="gtkbittorrent-engine"
           fi
           pushd build
           # packaging
           macdeployqt "$appName.app" -no-strip
           # code signing
           xattr -cr "$appName.app"
+          codesign --force --sign - "$appName.app/Contents/MacOS/gtkbittorrent-import"
           codesign --force --sign - \
             "$appName.app" \
             "$appName.app/Contents/Frameworks"/* \
@@ -178,5 +179,5 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: qBittorrent-CI_macOS_${{ matrix.qbt_gui }}_libtorrent-${{ matrix.libtorrent.version }}_Qt-${{ matrix.qt_version }}
+          name: gtkBittorrent-CI_macOS_${{ matrix.qbt_gui }}_libtorrent-${{ matrix.libtorrent.version }}_Qt-${{ matrix.qt_version }}
           path: upload

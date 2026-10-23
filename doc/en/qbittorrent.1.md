@@ -1,23 +1,23 @@
-% QBITTORRENT(1) Bittorrent client written in C++ / Qt
+% GTKBITTORRENT(1) Bittorrent client written in C++ / Qt
 %
 % August 2026
 
 # NAME
-qBittorrent - a Bittorrent client written in C++ / Qt
+gtkBittorrent - a Bittorrent client written in C++ / Qt
 
 
 # SYNOPSIS
-**qbittorrent** `[options] [(<filename> | <url>)...]`
+**gtkbittorrent** `[options] [(<filename> | <url>)...]`
 
-**qbittorrent** `--help`
+**gtkbittorrent** `--help`
 
-**qbittorrent** `--version`
+**gtkbittorrent** `--version`
 
 
 # DESCRIPTION
-**qBittorrent** is an advanced Bittorrent client written in C++ / Qt,
-using the **libtorrent-rasterbar** library by Arvid Norberg. qBittorrent is similar to uTorrent.
-qBittorrent is fast, stable, light, it supports Unicode and it provides a good integrated
+**gtkBittorrent** is an advanced Bittorrent client written in C++ / Qt,
+using the **libtorrent-rasterbar** library by Arvid Norberg. gtkBittorrent is similar to uTorrent.
+gtkBittorrent is fast, stable, light, it supports Unicode and it provides a good integrated
 search engine. It also comes with UPnP port forwarding / NAT-PMP, encryption (Vuze compatible),
 FAST extension (mainline) and PeX support (utorrent compatible).
 
@@ -37,7 +37,7 @@ FAST extension (mainline) and PeX support (utorrent compatible).
 
 **`--profile=<dir>`** Store configuration files in `<dir>`.
 
-**`--configuration=<name>`** Store configuration files in directories qBittorrent_`<name>`.
+**`--configuration=<name>`** Store configuration files in directories gtkBittorrent_`<name>`.
 
 **`--relative-fastresume`** Hack into libtorrent fastresume files and make file paths
 relative to the profile directory.
@@ -65,17 +65,17 @@ when adding a torrent.
 
 # ENVIRONMENT
 Option values may be supplied via environment variables. For an option named
-'parameter-name', the environment variable name is 'QBT_PARAMETER_NAME' (upper
+'parameter-name', the environment variable name is 'GTKB_PARAMETER_NAME' (upper
 case, with '-' replaced by '_'). To pass flag values, set the variable to '1' or
 'TRUE'. For example, to disable the splash screen:
 
-    QBT_NO_SPLASH=1 qbittorrent
+    GTKB_NO_SPLASH=1 gtkbittorrent
 
 Command line parameters take precedence over environment variables.
 
 
 # BUGS
-If you find a bug, please report it at https://bugs.qbittorrent.org
+If you find a bug, please report it at https://github.com/gstn-caruso/gtkBittorrent
 
 
 # AUTHORS

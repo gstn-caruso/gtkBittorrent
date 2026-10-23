@@ -1,30 +1,30 @@
-% QBITTORRENT-NOX(1) Command line Bittorrent client written in C++ / Qt
+% GTKBITTORRENT-ENGINE(1) Command line Bittorrent client written in C++ / Qt
 %
 % August 2026
 
 # NAME
-qBittorrent-nox - a command line Bittorrent client written in C++ / Qt
+gtkbittorrent-engine - a command line Bittorrent client written in C++ / Qt
 
 
 # SYNOPSIS
-**qbittorrent-nox** `[options] [(<filename> | <url>)...]`
+**gtkbittorrent-engine** `[options] [(<filename> | <url>)...]`
 
-**qbittorrent-nox** `--help`
+**gtkbittorrent-engine** `--help`
 
-**qbittorrent-nox** `--version`
+**gtkbittorrent-engine** `--version`
 
 
 # DESCRIPTION
-**qBittorrent-nox** is an advanced command-line Bittorrent client written in C++ / Qt
+**gtkbittorrent-engine** is an advanced command-line Bittorrent client written in C++ / Qt
 using the **libtorrent-rasterbar** library by Arvid Norberg.
-qBittorrent-nox aims to be a good alternative to other command line bittorrent
+gtkbittorrent-engine aims to be a good alternative to other command line bittorrent
 clients and provides features similar to popular graphical clients.
 
-qBittorrent-nox is fast, stable, light and it supports Unicode. It also comes with
+gtkbittorrent-engine is fast, stable, light and it supports Unicode. It also comes with
 UPnP port forwarding / NAT-PMP, encryption (Vuze compatible), FAST extension (mainline)
 and PeX support (utorrent compatible).
 
-qBittorrent-nox is meant to be controlled via its feature-rich Web UI which is
+gtkbittorrent-engine is meant to be controlled via its feature-rich Web UI which is
 accessible by default at http://localhost:8080. The default WebUI administrator
 user name is "admin". If no password has been set, a temporary random password is
 generated and printed to the console on each startup; you should set your own
@@ -46,7 +46,7 @@ password in the program preferences.
 
 **`--profile=<dir>`** Store configuration files in `<dir>`.
 
-**`--configuration=<name>`** Store configuration files in directories qBittorrent_`<name>`.
+**`--configuration=<name>`** Store configuration files in directories gtkBittorrent_`<name>`.
 
 **`--relative-fastresume`** Hack into libtorrent fastresume files and make file paths
 relative to the profile directory.
@@ -74,17 +74,17 @@ when adding a torrent.
 
 # ENVIRONMENT
 Option values may be supplied via environment variables. For an option named
-'parameter-name', the environment variable name is 'QBT_PARAMETER_NAME' (upper
+'parameter-name', the environment variable name is 'GTKB_PARAMETER_NAME' (upper
 case, with '-' replaced by '_'). To pass flag values, set the variable to '1' or
 'TRUE'. For example, to change the WebUI port:
 
-    QBT_WEBUI_PORT=8081 qbittorrent-nox
+    GTKB_WEBUI_PORT=8081 gtkbittorrent-engine
 
 Command line parameters take precedence over environment variables.
 
 
 # BUGS
-If you find a bug, please report it at https://bugs.qbittorrent.org
+If you find a bug, please report it at https://github.com/gstn-caruso/gtkBittorrent
 
 
 # AUTHORS

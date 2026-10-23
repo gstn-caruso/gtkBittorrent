@@ -34,6 +34,7 @@
 #include <QDBusPendingReply>
 
 #include "base/global.h"
+#include "applicationidentity.h"
 #include "dbusnotificationsinterface.h"
 
 DBusNotifier::DBusNotifier(QObject *parent)
@@ -59,9 +60,9 @@ void DBusNotifier::showMessage(const QString &title, const QString &message, con
 {
     // Assign "default" action to notification to make it clickable
     const QStringList actions {u"default"_s, {}};
-    const QVariantMap hints {{u"desktop-entry"_s, u"org.qbittorrent.qBittorrent"_s}};
-    const QDBusPendingReply<uint> reply = m_notificationsInterface->notify(u"qBittorrent"_s, 0
-            , u"qbittorrent"_s, title, message, actions, hints, timeout);
+    const QVariantMap hints {{u"desktop-entry"_s, QString::fromLatin1(GtkBittorrent::applicationId)}};
+    const QDBusPendingReply<uint> reply = m_notificationsInterface->notify(QString::fromLatin1(GtkBittorrent::applicationName), 0
+            , u"gtkbittorrent"_s, title, message, actions, hints, timeout);
     auto *watcher = new QDBusPendingCallWatcher(reply, this);
     connect(watcher, &QDBusPendingCallWatcher::finished, this, [this](QDBusPendingCallWatcher *self)
     {

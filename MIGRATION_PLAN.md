@@ -1,6 +1,6 @@
 # GTK migration and continuous release plan
 
-Status: implementation in progress; inherited Linux builds and session baseline established.
+Status: implementation in progress; Linux baseline, isolated fork identity, and explicit profile import established.
 
 Assessment date: 2026-10-22.
 
@@ -55,6 +55,19 @@ passes session integration checks covering local peer transfer, persistence,
 settings recovery, and loading frozen legacy/SQLite resume fixtures. See the
 [behavior baseline](test/MIGRATION_BASELINE.md) for commands, evidence, the feature
 inventory, and remaining validation gates.
+
+Fork identity is now `gtkBittorrent`, with application ID
+`io.github.gstn_caruso.gtkBittorrent`, separate profile/settings directories, and
+`GTKB_` command-line environment variables. Executables are `gtkbittorrent`,
+`gtkbittorrent-engine`, and the Qt-free `gtkbittorrent-import`. The importer
+supports closed custom profiles and explicit configuration/data directories;
+real-engine tests verify imported legacy and SQLite sessions without modifying
+their sources. See the [import guide](src/profile/README.md).
+
+Linux installation metadata and the existing workflow executable paths have been
+adapted. Native Windows/macOS installation verification, the branch move, and
+automatic prereleases remain pending. Neither the desktop nor the torrent
+engine is Qt-free yet.
 
 ## Migration stages
 
