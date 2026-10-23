@@ -5,6 +5,7 @@ import json
 import secrets
 import subprocess  # nosec B404 # Exercise the locally built test probe without a shell.
 import threading
+import time
 import unittest
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -19,6 +20,7 @@ class ApiServer(ThreadingHTTPServer):
         super().__init__(("127.0.0.1", 0), ApiHandler)
         self.responses: list[tuple[int, bytes, dict[str, str]]] = []
         self.requests: list[tuple[str, str, dict[str, str], bytes]] = []
+        self.delay = 0.0
 
 
 class ApiHandler(BaseHTTPRequestHandler):
@@ -33,12 +35,16 @@ class ApiHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
         server.requests.append((self.command, self.path, dict(self.headers.items()), body))
         status, response, headers = server.responses.pop(0) if server.responses else (500, b"Unexpected request", {})
+        time.sleep(server.delay)
         self.send_response(status)
         for name, value in headers.items():
             self.send_header(name, value)
         self.send_header("Content-Length", str(len(response)))
         self.end_headers()
-        self.wfile.write(response)
+        try:
+            self.wfile.write(response)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def log_message(self, format: str, *args: Any) -> None:
         pass
@@ -87,6 +93,61 @@ class TestEngineClient(unittest.TestCase):
                           ("POST", "/api/v2/torrents/delete"), ("GET", "/api/v2/torrents/info")])
         self.assertEqual(urllib.parse.parse_qs(self.server.requests[1][3].decode()), {"hashes": [identifier]})
         self.assertEqual(urllib.parse.parse_qs(self.server.requests[3][3].decode()), {"hashes": [identifier], "deleteFiles": ["false"]})
+
+    def testRejectInvalidIdentifiersBeforeSendingAControlRequest(self) -> None:
+        for identifier in ("all", "a" * 39, "a" * 41, "a" * 40 + "|" + "b" * 40):
+            with self.subTest(identifier=identifier):
+                self.server.requests.clear()
+                self.server.responses = [(200, b"", {})]
+                code, result = self.invoke(stop=identifier)
+                self.assertEqual((code, result), (1, {"error": 0, "status": 0}))
+                self.assertEqual(len(self.server.requests), 1)
+
+    def testReportAuthenticationFailuresAndExpiredSessions(self) -> None:
+        for status, body in ((401, b""), (403, b""), (200, b"Fails.")):
+            with self.subTest(status=status):
+                self.server.responses = [(status, body, {})]
+                self.assertEqual(self.invoke(), (1, {"error": 1, "status": status}))
+        self.server.responses = [(200, b"Ok.", {}), (403, b"", {})]
+        self.assertEqual(self.invoke(), (1, {"error": 1, "status": 403}))
+
+    def testRejectMalformedSnapshotsWithoutPartialResults(self) -> None:
+        valid = {"hash": "a" * 40, "name": "torrent", "size": 123, "progress": 0.5, "state": "futureState"}
+        invalid: list[Any] = [{}, "not-an-array", [valid, {}], [dict(valid, hash="invalid")],
+                              [dict(valid, size=-1)], [dict(valid, size=1.5)], [dict(valid, progress=1.01)],
+                              [dict(valid, progress="0.5")], [dict(valid, name=None)]]
+        for payload in invalid:
+            with self.subTest(payload=payload):
+                self.server.responses = [(200, b"", {}), (200, json.dumps(payload).encode(), {})]
+                self.assertEqual(self.invoke(), (1, {"error": 3, "status": 0}))
+        self.server.responses = [(200, b"", {}), (200, b"not json", {})]
+        self.assertEqual(self.invoke(), (1, {"error": 3, "status": 0}))
+
+    def testPreserveUnknownStatesAndReverseProxyPrefixes(self) -> None:
+        torrent = {"hash": "b" * 64, "name": "torrent", "size": 0, "progress": 0, "state": "futureState"}
+        self.server.responses = [(200, b"Ok.", {}), (200, json.dumps([torrent]).encode(), {})]
+        self.assertEqual(self.invoke(url=self.url + "proxy"), (0, {"torrents": [torrent]}))
+        self.assertEqual(self.server.requests[1][1], "/proxy/api/v2/torrents/info")
+        self.assertEqual(self.server.requests[0][2]["Referer"], self.url + "proxy/")
+
+    def testReportServerFailuresAndRejectCredentialRedirects(self) -> None:
+        self.server.responses = [(500, b"sensitive server details", {})]
+        self.assertEqual(self.invoke(), (1, {"error": 4, "status": 500}))
+        self.server.requests.clear()
+        self.server.responses = [(302, b"", {"Location": self.url + "another-origin"})]
+        self.assertEqual(self.invoke(), (1, {"error": 3, "status": 302}))
+        self.assertEqual(len(self.server.requests), 1)
+
+    def testRejectInvalidEndpointsBeforeNetworkActivity(self) -> None:
+        for url in ("file:///tmp/session", "https://user:secret@example.invalid/", self.url + "?extra=value", self.url + "#fragment", self.url + "\x00suffix"):
+            with self.subTest(url=url):
+                self.assertEqual(self.invoke(url=url), (1, {"error": 0, "status": 0}))
+        self.assertFalse(self.server.requests)
+
+    def testBoundRequestTimeAndReportTransportFailure(self) -> None:
+        self.server.delay = 0.2
+        self.server.responses = [(200, b"", {})]
+        self.assertEqual(self.invoke(timeout=25), (1, {"error": 2, "status": 0}))
 
 
 if __name__ == "__main__":

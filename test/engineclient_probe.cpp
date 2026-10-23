@@ -1,3 +1,4 @@
+#include <chrono>
 #include <iostream>
 #include <string>
 
@@ -11,7 +12,7 @@ int main()
     try
     {
         const json input = json::parse(std::cin);
-        Engine::Client client(input.at("url").get<std::string>());
+        Engine::Client client(input.at("url").get<std::string>(), std::chrono::milliseconds(input.value("timeout", 3000)));
         client.login(input.at("username").get<std::string>(), input.at("password").get<std::string>());
         if (input.contains("stop"))
             client.stop(Engine::TorrentId(input.at("stop").get<std::string>()));
