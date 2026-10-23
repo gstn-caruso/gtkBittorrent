@@ -223,7 +223,8 @@ class TestRealEngineClient(unittest.TestCase):
                 session.stop()
                 session.start()
                 session.login()
-                restored = testsession.waitFor(lambda: invoke()["torrents"], lambda items: bool(items) and items[0]["progress"] == 0.5)[0]
+                testsession.waitFor(session.torrents, lambda items: bool(items) and items[0]["progress"] == 0.5)
+                restored = invoke()["torrents"][0]
                 self.assertEqual(restored["hash"], identifier)
                 self.assertEqual(restored["progress"], 0.5)
                 self.assertEqual(restored["state"], "stoppedDL")
