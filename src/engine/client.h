@@ -17,7 +17,8 @@ namespace Engine
         Authentication,
         Transport,
         Protocol,
-        Server
+        Server,
+        Cancelled
     };
 
     class Error final : public std::runtime_error

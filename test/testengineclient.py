@@ -30,6 +30,7 @@ class ApiServer(ThreadingHTTPServer):
         self.responses: list[tuple[int, bytes, dict[str, str]]] = []
         self.requests: list[tuple[str, str, dict[str, str], bytes]] = []
         self.delay = 0.0
+        self.release: threading.Event | None = None
 
 
 class ApiHandler(BaseHTTPRequestHandler):
@@ -44,6 +45,8 @@ class ApiHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(int(self.headers.get("Content-Length", "0")))
         server.requests.append((self.command, self.path, dict(self.headers.items()), body))
         status, response, headers = server.responses.pop(0) if server.responses else (500, b"Unexpected request", {})
+        if server.release is not None:
+            server.release.wait(timeout=5)
         time.sleep(server.delay)
         self.send_response(status)
         for name, value in headers.items():
