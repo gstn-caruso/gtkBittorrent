@@ -1,6 +1,6 @@
 # GTK migration and continuous release plan
 
-Status: implementation in progress; first prerelease published and a Qt-free GTK preview controls test sessions.
+Status: paused at the user's requested minimum GTK checkpoint; full migration remains incomplete.
 
 Assessment date: 2026-10-22.
 
@@ -36,6 +36,8 @@ delivered.
   destinations, and stopped additions against a disposable real engine.
 - [x] Confirm removal of a captured torrent ID, preserve files by default, and
   verify explicit deletion and cancellation through native GTK controls.
+- [x] Filter Unicode torrent names and sort the native table while preserving
+  command targets and selection across snapshot updates.
 - [x] Publish/download the first CI-tested prerelease and verify its checksums
   and real-engine session/import behavior locally.
 - [ ] Complete the remaining behavior baseline, including proxy/DNS handling.
@@ -79,7 +81,7 @@ worker tests pass under address/undefined-behavior sanitizers; the worker tests
 also pass under ThreadSanitizer. CI now includes these checks and security
 analysis, and release builds exercise the client against the newly built engine.
 The [native GTK preview](src/gtk/README.md) now consumes these events in a
-`ColumnView` and controls selected torrents. Seven local UI cases cover Unicode
+`ColumnView` and controls selected torrents. Eight local UI cases cover Unicode
 rendering/selection, authentication failures, real partial-download controls,
 magnet addition, and removal against both a test API and the real engine under
 isolated D-Bus/Xvfb. Removal confirmation retains its original target even when
@@ -89,6 +91,15 @@ The window follows GTK theme settings, retains selected
 IDs across updates, and joins workers after its application loop exits. Process
 lifecycle/profile ownership, advanced API operations, and a usable packaged GTK
 application remain pending; this does not complete stages 3 or 4.
+The minimum GTK checkpoint also includes case-insensitive name filtering and
+sortable name/size/progress/state columns through native filter/sort models.
+Tests verify exact integer size sorting, command targets after model changes,
+visible/total counts, and disabling controls when the selected row is hidden.
+At this pause, the warning-clean local GTK build and all eight UI cases pass,
+including the real-engine magnet, partial-download, and file-removal checks.
+Python type/lint checks and file-health tools also pass. The rendered minimum
+interface was reviewed locally under Xvfb. Run instructions are in the preview
+README; its local executable is `build/gtk-preview/gtkbittorrent-gtk`.
 
 The local and remote default branch are now `main`. The first automatic release
 run was [39892861397](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39892861397),
@@ -106,6 +117,12 @@ runtime setting remains enabled. The corrected run
 [39898806131](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39898806131)
 has passed file-health and native GTK checks; inspect the remaining jobs before
 automatic publication can be verified.
+The magnet/removal checkpoint
+[39899421229](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39899421229)
+also passed its native GTK, client, Python, and file-health jobs; other release
+jobs were still running at this pause. The final filtering/sorting push needs its
+own CI result. Existing runs remain running; no automatic release success is
+claimed for these checkpoints.
 The earlier [manual run](https://github.com/gstn-caruso/gtkBittorrent/actions/runs/39887360562)
 is also terminal; the current source includes its verified fixes. Preserve the
 full migration scope and use targeted tests for each change. The downloaded and
@@ -115,7 +132,7 @@ available. Earlier build/runtime logs remain under `build/release-verified` and
 `build/release-runtime-*.log`. Inspect the worktree and remote state before
 continuing.
 
-Next implement GTK file addition, filtering/sorting, and managed
+Work stops here at the user's request. On resumption, implement GTK file addition and managed
 backend/profile ownership. The current preview connects to externally owned
 engines and is available from source, not in the release package. Local GTK UI
 checks and a rendered screenshot are under `build/gtk-preview`. GTK 4.24.1

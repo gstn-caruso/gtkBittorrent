@@ -30,6 +30,39 @@ def runGtk(data: Mapping[str, Any]) -> subprocess.CompletedProcess[str]:
 
 
 class TestGtk(unittest.TestCase):
+    def testFilterAndSortWithoutChangingTheCommandTarget(self) -> None:
+        identifier = "f" * 40
+        torrents = [{"hash": "a" * 40, "name": "zeta 日本語.bin", "size": 9007199254740992, "progress": 0.5, "state": "stoppedDL"},
+                    {"hash": "b" * 40, "name": "other torrent", "size": 1024, "progress": 1, "state": "stoppedUP"},
+                    {"hash": identifier, "name": "alpha 日本語.bin", "size": 9007199254740993, "progress": 0.25, "state": "stoppedDL"}]
+        commands: list[tuple[str, dict[str, list[str]]]] = []
+        server = ApiServer()
+
+        def respond(method: str, path: str, body: bytes) -> tuple[int, bytes, dict[str, str]]:
+            if path == "/api/v2/auth/login":
+                return 200, b"Ok.", {}
+            if method == "GET" and path == "/api/v2/torrents/info":
+                return 200, json.dumps(torrents).encode(), {}
+            if path in ("/api/v2/torrents/start", "/api/v2/torrents/stop"):
+                commands.append((path, urllib.parse.parse_qs(body.decode())))
+                torrents[2]["state"] = "downloading" if path.endswith("start") else "stoppedDL"
+                return 200, b"", {}
+            return 404, b"", {}
+
+        server.provider = respond
+        thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
+        thread.start()
+        try:
+            result = runGtk({"url": f"http://127.0.0.1:{server.server_port}/", "username": "baseline",
+                             "password": secrets.token_urlsafe(24), "action": "filter-sort", "hash": identifier})
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            self.assertEqual(commands, [("/api/v2/torrents/start", {"hashes": [identifier]}),
+                                        ("/api/v2/torrents/stop", {"hashes": [identifier]})])
+        finally:
+            server.shutdown()
+            thread.join(timeout=2)
+            server.server_close()
+
     def testConfirmRemovalOfTheCapturedTorrentAndResetDeletionChoice(self) -> None:
         for deleteFiles in (False, True):
             with self.subTest(deleteFiles=deleteFiles):

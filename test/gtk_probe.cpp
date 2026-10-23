@@ -160,13 +160,74 @@ namespace
                     widget<Gtk::Button>(*removal, "cancel-removal").activate();
                 else
                 {
-                    selection->set_selected(0);
+                    selection->set_selected((selection->get_selected() + 1) % selection->get_n_items());
                     widget<Gtk::Button>(*removal, "confirm-removal").activate();
                 }
                 ++phase;
             }
         }
         return (phase == 4) && (selection->get_n_items() == input.value("remaining_count", 1U));
+    }
+
+    bool filterAndSort(Gtk::Window &window, const nlohmann::json &input, int &phase)
+    {
+        auto &view = widget<Gtk::ColumnView>(window, "torrent-list");
+        const auto selection = std::dynamic_pointer_cast<Gtk::SingleSelection>(view.get_model());
+        auto &search = widget<Gtk::SearchEntry>(window, "torrent-search");
+        if (!selection)
+            return false;
+        const auto sizeColumn = std::dynamic_pointer_cast<Gtk::ColumnViewColumn>(view.get_columns()->get_object(1));
+        if ((phase == 0) && (selection->get_n_items() == 3))
+        {
+            search.set_text("日本語");
+            phase = 1;
+        }
+        else if (((phase == 1) || (phase == 2) || (phase == 3)) && (selection->get_n_items() == 2))
+        {
+            const auto first = std::dynamic_pointer_cast<Gui::TorrentRow>(selection->get_object(0));
+            const auto last = std::dynamic_pointer_cast<Gui::TorrentRow>(selection->get_object(1));
+            if ((phase == 1) && (first->snapshot().name == "alpha 日本語.bin"))
+            {
+                view.sort_by_column(sizeColumn, Gtk::SortType::DESCENDING);
+                phase = 2;
+            }
+            else if ((phase == 2) && (first->snapshot().name == "alpha 日本語.bin"))
+            {
+                view.sort_by_column(sizeColumn, Gtk::SortType::ASCENDING);
+                phase = 3;
+            }
+            else if ((phase == 3) && (last->snapshot().name == "alpha 日本語.bin"))
+            {
+                selection->set_selected(1);
+                widget<Gtk::Button>(window, "start-torrent").activate();
+                phase = 4;
+            }
+        }
+        else if ((phase == 4) || (phase == 5))
+        {
+            const auto selected = std::dynamic_pointer_cast<Gui::TorrentRow>(selection->get_selected_item());
+            if (!selected || (selected->snapshot().id.value() != input.at("hash").get<std::string>()))
+                throw std::runtime_error("Sorting or snapshot updates changed the selected torrent");
+            if ((phase == 4) && (selected->snapshot().state == "downloading"))
+            {
+                search.set_text("");
+                widget<Gtk::Button>(window, "stop-torrent").activate();
+                phase = 5;
+            }
+            else if ((phase == 5) && (selected->snapshot().state == "stoppedDL") && (selection->get_n_items() == 3))
+            {
+                search.set_text("_no_match_");
+                phase = 6;
+            }
+        }
+        else if ((phase == 6) && (selection->get_n_items() == 0) && displays(window, "0 of 3 torrents"))
+        {
+            if (widget<Gtk::Button>(window, "start-torrent").get_sensitive())
+                throw std::runtime_error("Start remained enabled for a hidden torrent");
+            search.set_text("");
+            phase = 7;
+        }
+        return (phase == 7) && (selection->get_n_items() == 3) && !selection->get_selected_item();
     }
 }
 
@@ -217,8 +278,15 @@ int main(int argc, char **argv)
                     return true;
                 }
                 const std::string action = input.value("action", "");
-                const bool completed = action == "add-magnet" ? addMagnet(*window, input, phase)
-                    : (action == "remove" ? removeSelected(*window, input, phase) : controlSelected(*window, input, phase));
+                bool completed = false;
+                if (action == "add-magnet")
+                    completed = addMagnet(*window, input, phase);
+                else if (action == "remove")
+                    completed = removeSelected(*window, input, phase);
+                else if (action == "filter-sort")
+                    completed = filterAndSort(*window, input, phase);
+                else
+                    completed = controlSelected(*window, input, phase);
                 if (completed)
                 {
                     passed = true;

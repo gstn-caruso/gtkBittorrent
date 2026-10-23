@@ -45,6 +45,42 @@ namespace
         return text.str();
     }
 
+    Glib::RefPtr<Gtk::Expression<Glib::ustring>> textExpression(const bool state = false)
+    {
+        return Gtk::ClosureExpression<Glib::ustring>::create([state](const Glib::RefPtr<Glib::ObjectBase> &object) -> Glib::ustring
+        {
+            const auto row = std::dynamic_pointer_cast<Gui::TorrentRow>(object);
+            if (!row)
+                return {};
+            return state ? stateText(row->snapshot().state) : row->snapshot().name;
+        });
+    }
+
+    Glib::RefPtr<Gtk::Sorter> fieldSorter(const unsigned int field)
+    {
+        if (field == 1)
+        {
+            const auto expression = Gtk::ClosureExpression<std::uint64_t>::create([](const Glib::RefPtr<Glib::ObjectBase> &object) -> std::uint64_t
+            {
+                const auto row = std::dynamic_pointer_cast<Gui::TorrentRow>(object);
+                return row ? row->snapshot().size : 0;
+            });
+            return Gtk::NumericSorter<std::uint64_t>::create(expression);
+        }
+        if (field == 2)
+        {
+            const auto expression = Gtk::ClosureExpression<double>::create([](const Glib::RefPtr<Glib::ObjectBase> &object) -> double
+            {
+                const auto row = std::dynamic_pointer_cast<Gui::TorrentRow>(object);
+                return row ? row->snapshot().progress : 0;
+            });
+            return Gtk::NumericSorter<double>::create(expression);
+        }
+        const auto sorter = Gtk::StringSorter::create(textExpression(field == 3));
+        sorter->set_ignore_case(true);
+        return sorter;
+    }
+
     void setCellChild(const Glib::RefPtr<Glib::Object> &object, Gtk::Widget &child)
     {
         if (const auto item = std::dynamic_pointer_cast<Gtk::ListItem>(object))
@@ -109,6 +145,7 @@ namespace
         result->set_expand(field == 0);
         result->set_resizable(true);
         result->set_fixed_width(field == 0 ? 350 : 150);
+        result->set_sorter(fieldSorter(field));
         return result;
     }
 }
@@ -133,7 +170,10 @@ namespace Gui
         , m_magnetDialog {*this}
         , m_removalDialog {*this}
         , m_rows {Gio::ListStore<TorrentRow>::create()}
-        , m_selection {Gtk::SingleSelection::create(m_rows)}
+        , m_filter {Gtk::StringFilter::create(textExpression())}
+        , m_filtered {Gtk::FilterListModel::create(m_rows, m_filter)}
+        , m_sorted {Gtk::SortListModel::create(m_filtered, {})}
+        , m_selection {Gtk::SingleSelection::create(m_sorted)}
     {
         set_title("gtkBittorrent — GTK preview");
         set_default_size(1050, 650);
@@ -194,17 +234,28 @@ namespace Gui
         m_toolbar.append(m_start);
         m_toolbar.append(m_stop);
         m_toolbar.append(m_remove);
+        m_search.set_name("torrent-search");
+        m_search.set_placeholder_text("Filter torrents by name…");
+        m_search.set_hexpand(true);
+        m_search.signal_search_changed().connect([this]() { m_filter->set_search(m_search.get_text()); });
+        m_filter->set_ignore_case(true);
+        m_filter->set_match_mode(Gtk::StringFilter::MatchMode::SUBSTRING);
+        m_toolbar.append(m_search);
         m_selection->set_autoselect(false);
         m_selection->set_can_unselect(true);
-        m_selectionChanged = m_selection->signal_selection_changed().connect([this](unsigned int, unsigned int) { updateControls(); });
+        m_selectionChanged = m_selection->property_selected_item().signal_changed().connect(sigc::mem_fun(*this, &Window::updateControls));
         m_view.set_name("torrent-list");
         m_view.set_model(m_selection);
         m_view.add_css_class("data-table");
         m_view.set_show_row_separators(true);
-        m_view.append_column(column("Name", 0));
+        const auto nameColumn = column("Name", 0);
+        m_view.append_column(nameColumn);
         m_view.append_column(column("Size", 1));
         m_view.append_column(column("Progress", 2));
         m_view.append_column(column("State", 3));
+        m_sorted->set_sorter(m_view.get_sorter());
+        m_view.sort_by_column(nameColumn, Gtk::SortType::ASCENDING);
+        m_itemsChanged = m_filtered->signal_items_changed().connect([this](unsigned int, unsigned int, unsigned int) { updateCount(); });
         m_scroll.set_child(m_view);
         m_scroll.set_vexpand(true);
         m_footer.set_margin(12);
@@ -226,6 +277,7 @@ namespace Gui
     {
         m_timer.disconnect();
         m_selectionChanged.disconnect();
+        m_itemsChanged.disconnect();
         m_view.set_model({});
         if (m_worker)
             m_worker->requestStop();
@@ -284,6 +336,14 @@ namespace Gui
         m_remove.set_sensitive(m_connected && selected);
     }
 
+    void Window::updateCount()
+    {
+        const unsigned int total = m_rows->get_n_items();
+        const unsigned int visible = m_filtered->get_n_items();
+        m_count.set_text((visible == total ? "" : std::to_string(visible) + " of ")
+            + std::to_string(total) + (total == 1 ? " torrent" : " torrents"));
+    }
+
     void Window::applySnapshot(const std::vector<Engine::TorrentSnapshot> &torrents)
     {
         const auto selected = std::dynamic_pointer_cast<TorrentRow>(m_selection->get_selected_item());
@@ -293,12 +353,13 @@ namespace Gui
         for (const Engine::TorrentSnapshot &torrent : torrents)
             rows.push_back(TorrentRow::create(torrent));
         m_rows->splice(0, m_rows->get_n_items(), rows);
-        for (unsigned int index = 0; index < rows.size(); ++index)
+        for (unsigned int index = 0; index < m_selection->get_n_items(); ++index)
         {
-            if (rows[index]->snapshot().id.value() == id)
+            const auto row = std::dynamic_pointer_cast<TorrentRow>(m_selection->get_object(index));
+            if (row->snapshot().id.value() == id)
                 m_selection->set_selected(index);
         }
-        m_count.set_text(std::to_string(torrents.size()) + (torrents.size() == 1 ? " torrent" : " torrents"));
+        updateCount();
         updateControls();
     }
 

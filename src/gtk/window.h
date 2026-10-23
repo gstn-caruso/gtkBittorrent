@@ -23,6 +23,7 @@ namespace Gui
         void submitSelected(bool start);
         void submit(Engine::Command command);
         void updateControls();
+        void updateCount();
         void applySnapshot(const std::vector<Engine::TorrentSnapshot> &torrents);
         bool poll();
 
@@ -42,6 +43,7 @@ namespace Gui
         Gtk::Button m_start;
         Gtk::Button m_stop;
         Gtk::Button m_remove;
+        Gtk::SearchEntry m_search;
         Gtk::ScrolledWindow m_scroll;
         Gtk::ColumnView m_view;
         Gtk::Box m_footer;
@@ -50,11 +52,15 @@ namespace Gui
         MagnetDialog m_magnetDialog;
         RemovalDialog m_removalDialog;
         Glib::RefPtr<Gio::ListStore<TorrentRow>> m_rows;
+        Glib::RefPtr<Gtk::StringFilter> m_filter;
+        Glib::RefPtr<Gtk::FilterListModel> m_filtered;
+        Glib::RefPtr<Gtk::SortListModel> m_sorted;
         Glib::RefPtr<Gtk::SingleSelection> m_selection;
         std::unique_ptr<Engine::Worker> m_worker;
         std::vector<std::unique_ptr<Engine::Worker>> m_retired;
         sigc::connection m_timer;
         sigc::connection m_selectionChanged;
+        sigc::connection m_itemsChanged;
         bool m_connected = false;
     };
 }

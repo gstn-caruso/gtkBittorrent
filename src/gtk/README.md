@@ -23,18 +23,18 @@ text. The table, rather than a branded hero or cards, carries the visual weight.
 ```text
 gtkBittorrent                                      Connect
 Address / username / password / Connect
-Add magnet   Start   Stop   Remove
+Add magnet   Start   Stop   Remove    Filter torrents by name
 Name                            Size    Progress    State
 Torrent rows, using GTK's virtualized ColumnView
 Connection and operation status
 ```
 
 The preview verifies connection, live torrent rows, selected-torrent start/stop,
-magnet addition, and removal. The native magnet dialog accepts a destination on the
+magnet addition, removal, filtering, and sorting. The native magnet dialog accepts a destination on the
 engine and an optional stopped state; cancel and invalid links send no request.
 Removal identifies the selected torrent and keeps its files by default; deleting
 files requires a fresh explicit choice in its confirmation dialog.
-File addition, filtering/sorting, automatic backend ownership, packaging,
+File addition, automatic backend ownership, packaging,
 and feature parity remain required follow-up work. The release target
 is GTK 4.24.1; the initial local trial uses GTK 4.22.4 and gtkmm 4.20.0 available
 on the development machine. Final GTK dependency pinning remains unverified.
@@ -56,8 +56,12 @@ Connect. The preview keeps credentials in memory and does not write profiles or
 launch/stop the engine. It retires replaced workers without joining on GTK's
 main thread. Shutdown joins remaining workers after the application loop exits.
 
-The table uses `ColumnView`, `ListStore`, and `SingleSelection`. Selected torrent
-IDs are retained across snapshot updates. Native theme settings, keyboard focus,
+The table uses `ColumnView`, `ListStore`, `FilterListModel`, `SortListModel`, and
+`SingleSelection`. Search matches names without case sensitivity, including
+Unicode. Click a column header to sort names, exact integer sizes, progress, or
+displayed state. Selected torrent IDs are retained across snapshot updates and
+sorting; hiding a selected row clears selection and disables its controls.
+The footer shows the visible and total counts. Native theme settings, keyboard focus,
 and labelled connection fields remain available. The UI test drives actual GTK
 buttons and verifies rendered Unicode text and selected-torrent API requests
 on an isolated D-Bus/Xvfb session.
@@ -71,3 +75,6 @@ Magnet tests exercise cancel, invalid input, Unicode destinations, and addition
 to a real engine without public trackers or peer discovery.
 Removal tests verify cancel, a changed selection during confirmation, resetting
 the deletion choice, and real file preservation/deletion in disposable sessions.
+Filtering/sorting tests exercise Unicode search, integer sizes above floating
+point precision, selection after updates, and start/stop requests for the
+selected ID through the transformed list model.
