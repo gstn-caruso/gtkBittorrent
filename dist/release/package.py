@@ -84,7 +84,9 @@ def buildPackage(source: Path, stage: Path, output: Path, commit: str) -> Path:
         documentation = root / "usr/share/doc/gtkbittorrent"
         documentation.mkdir(parents=True, exist_ok=True)
         (documentation / "SOURCE_COMMIT").write_text(info.commit + "\n", encoding="utf-8")
-        (documentation / "build-info.json").write_text(manifest, encoding="utf-8")
+        applicationData = root / "usr/share/gtkbittorrent"
+        applicationData.mkdir(parents=True, exist_ok=True)
+        (applicationData / "build-info.json").write_text(manifest, encoding="utf-8")
         shutil.copyfile(source / "COPYING", documentation / "copyright")
         (control / "control").write_text(
             f"Package: gtkbittorrent\nVersion: {info.version}\nArchitecture: {architecture}\n"

@@ -91,6 +91,7 @@ class TestPackageSource(unittest.TestCase):
         extracted = self.root / "extracted"
         command("dpkg-deb", "--extract", str(package), str(extracted), cwd=self.root)
         self.assertEqual((extracted / "usr/share/doc/gtkbittorrent/SOURCE_COMMIT").read_text(encoding="utf-8"), self.commit + "\n")
+        self.assertEqual(json.loads((extracted / "usr/share/gtkbittorrent/build-info.json").read_text(encoding="utf-8")), metadata)
         self.assertEqual((extracted / "usr/bin/gtkbittorrent-import").read_bytes(), Path("/usr/bin/true").read_bytes())
         rebuilt = buildPackage(self.source, stage, self.root / "rebuilt", self.commit)
         self.assertEqual(package.read_bytes(), rebuilt.read_bytes())
