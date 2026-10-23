@@ -10,6 +10,19 @@
 #include <thread>
 #include <utility>
 
+namespace
+{
+    void execute(Engine::Client &client, const Engine::Stop &command)
+    {
+        client.stop(command.id);
+    }
+
+    void execute(Engine::Client &client, const Engine::Start &command)
+    {
+        client.start(command.id);
+    }
+}
+
 namespace Engine
 {
     struct Worker::Impl
@@ -114,7 +127,7 @@ namespace Engine
                 {
                     try
                     {
-                        client.stop(std::get<Stop>(request->command).id);
+                        std::visit([&client](const auto &command) { execute(client, command); }, request->command);
                         post(Accepted {request->id});
                     }
                     catch (const Error &error)

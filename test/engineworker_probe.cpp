@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <string>
@@ -22,13 +23,23 @@ int main()
         worker.submit(Engine::Stop {Engine::TorrentId(input.at("stop").get<std::string>())});
         ++submitted;
     }
+    if (input.contains("start"))
+    {
+        worker.submit(Engine::Start {Engine::TorrentId(input.at("start").get<std::string>())});
+        ++submitted;
+    }
+    if (input.value("stop_before_connect", false))
+        worker.requestStop();
     std::cout << json {{"ready", true}, {"submitted", submitted}}.dump() << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(input.value("consumer_delay_ms", 0)));
     json events = json::array();
     const auto deadline = std::chrono::steady_clock::now() + 5s;
     std::size_t settled = 0;
+    std::size_t maxBatchSnapshots = 0;
     bool snapshot = false;
-    while (std::chrono::steady_clock::now() < deadline)
+    const auto collect = [&]()
     {
+        std::size_t batchSnapshots = 0;
         for (const Engine::Event &event : worker.takeEvents())
         {
             if (std::holds_alternative<Engine::Connected>(event))
@@ -37,6 +48,7 @@ int main()
             {
                 events.push_back({{"type", "snapshot"}, {"count", value->torrents.size()}});
                 snapshot = true;
+                ++batchSnapshots;
             }
             if (const Engine::Accepted *value = std::get_if<Engine::Accepted>(&event))
             {
@@ -48,13 +60,24 @@ int main()
             {
                 events.push_back({{"type", "failure"}, {"id", value->requestId}, {"kind", static_cast<int>(value->kind)}, {"status", value->status}});
                 if (value->requestId != 0)
+                {
                     ++settled;
+                    snapshot = false;
+                }
             }
         }
+        maxBatchSnapshots = std::max(maxBatchSnapshots, batchSnapshots);
+    };
+    while (std::chrono::steady_clock::now() < deadline)
+    {
+        collect();
         if (((settled == submitted) && snapshot) || worker.finished())
             break;
         std::this_thread::sleep_for(1ms);
     }
     worker.requestStop();
-    std::cout << json {{"events", events}}.dump() << '\n';
+    while (!worker.finished() && (std::chrono::steady_clock::now() < (deadline + 6s)))
+        std::this_thread::sleep_for(1ms);
+    collect();
+    std::cout << json {{"events", events}, {"max_batch_snapshots", maxBatchSnapshots}}.dump() << '\n';
 }

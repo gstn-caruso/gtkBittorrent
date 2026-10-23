@@ -24,7 +24,12 @@ namespace Engine
         TorrentId id;
     };
 
-    using Command = std::variant<Stop>;
+    struct Start
+    {
+        TorrentId id;
+    };
+
+    using Command = std::variant<Stop, Start>;
 
     struct Connected {};
 
