@@ -16,6 +16,12 @@ jobs:
   python:
     uses: ./.github/workflows/ci_python.yaml
 
+  engine-client:
+    permissions:
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/ci_engine_client.yaml
+
   webui:
     permissions:
       contents: read
@@ -93,7 +99,7 @@ jobs:
   publish:
     name: Publish immutable prerelease
     if: github.ref == 'refs/heads/main'
-    needs: [python, webui, file-health, ubuntu, macos, windows, package]
+    needs: [python, engine-client, webui, file-health, ubuntu, macos, windows, package]
     runs-on: ubuntu-24.04
     permissions:
       contents: write

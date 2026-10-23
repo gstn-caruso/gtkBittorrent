@@ -23,7 +23,9 @@ docker run --rm --user "$(id -u):$(id -g)" \
 ```
 
 The build directory must be new. Both GUI/headless builds enable tests; CTest
-must pass before installation into a shared staging tree. Packaging rejects
+must pass before installation into a shared staging tree. Before packaging,
+the separate Qt-free client also builds and runs its HTTP tests and real-engine
+integration test against the freshly built backend. Packaging rejects
 dirty source trees, mismatched commits, and missing executables. Outputs are
 under `build/release-local/artifacts`: the `.deb`, `build-info.json`, and
 `SHA256SUMS`. The package also includes its source commit, build manifest, and
@@ -53,8 +55,8 @@ python3 -B -m dist.release.publish --artifacts build/release-local/artifacts \
 ```
 
 Publication requires an authenticated `gh` with repository contents permission.
-The CI publishing job depends on Python, WebUI, file-health, Ubuntu, macOS,
-Windows, and package smoke checks. Only publication grants contents write
+The CI publishing job depends on Python, the Qt-free engine client, WebUI,
+file-health, Ubuntu, macOS, Windows, and package smoke checks. Only publication grants contents write
 permission. Pushes to `main` run that workflow; manual dispatch can also validate
 other branches, where publication is skipped. Other push/PR checks remain
 available. The wider libtorrent compatibility matrices run weekly or through a

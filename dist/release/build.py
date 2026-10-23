@@ -37,6 +37,14 @@ def build(source: Path, directory: Path, commit: str, jobs: int) -> Path:
         for command in commands:
             subprocess.run(command, cwd=source, env=environment, check=True)  # nosec B603 # Fixed build tools and explicit paths.
         subprocess.run([cmake, "--install", str(target)], cwd=source, env=dict(environment, DESTDIR=str(stage)), check=True)  # nosec B603 # Fixed CMake install command.
+    client = directory / "client"
+    for command in (
+        [cmake, "-S", str(source / "src/engine"), "-B", str(client), "-G", "Ninja", "-DCMAKE_BUILD_TYPE=Release",
+         "-DBUILD_TESTING=ON", "-DENGINE_TEST_BINARY=" + str(directory / "engine/gtkbittorrent-engine")],
+        [cmake, "--build", str(client), "--parallel", str(jobs)],
+        [ctest, "--test-dir", str(client), "--output-on-failure"],
+    ):
+        subprocess.run(command, cwd=source, env=environment, check=True)  # nosec B603 # Fixed build tools and explicit paths.
     return buildPackage(source, stage, directory / "artifacts", commit)
 
 

@@ -1,0 +1,61 @@
+name: CI - Engine client
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-engine-client-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: ${{ github.head_ref != '' }}
+
+jobs:
+  client:
+    name: Qt-free client tests
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install client dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            cmake g++ ninja-build python3 libcurl4-openssl-dev nlohmann-json3-dev
+
+      - name: Build and test independently from Qt
+        run: |
+          cmake -S src/engine -B build/client -G Ninja -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="-Wall -Wextra -Wpedantic -Werror -fsanitize=address,undefined -fno-omit-frame-pointer"
+          cmake --build build/client --parallel 2
+          ctest --test-dir build/client --output-on-failure
+          ldd build/client/engineclient_probe > build/client/dependencies.txt
+          if grep -E 'libQt|not found' build/client/dependencies.txt; then
+            exit 1
+          fi
+
+      - name: Initialize client CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: cpp
+          build-mode: manual
+
+      - name: Build the client for security analysis
+        run: |
+          cmake -S src/engine -B build/client-codeql -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=OFF
+          cmake --build build/client-codeql --parallel 2
+
+      - name: Analyze client code
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: engine-client

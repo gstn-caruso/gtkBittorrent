@@ -11,11 +11,23 @@ thread. The owner must finish calls before destroying the client. A request
 timeout bounds transport operations. Constructing or destroying a client does
 not start, stop, or take ownership of an engine process or profile.
 
-The initial boundary authenticates through the existing Web API and returns
+The boundary authenticates through the existing Web API and returns
 complete torrent snapshots with validated identifiers, Unicode strings, and
 64-bit byte counts. Failures use `ErrorKind` and an optional HTTP status. It
 accepts HTTP/HTTPS base URLs, including reverse-proxy path prefixes, and leaves
 TLS certificate verification enabled. Redirects are rejected.
+
+It also starts/stops selected torrents, adds torrent files and magnets with an
+explicit destination/stopped state, and removes torrents with an explicit
+delete-files choice. Torrent identifiers exclude wildcard and multi-torrent
+strings. Uploads preserve binary bytes. Add acknowledgements support the current
+JSON summary, including pending additions, and legacy empty/`Ok.` replies.
+An acknowledgement does not mean that asynchronous engine state has settled;
+the owner must keep refreshing snapshots.
+
+Process startup/shutdown, profile ownership, worker dispatch/events, preferences,
+and advanced feature coverage remain pending. These are required before the GTK
+client can replace the existing interface.
 
 ## Build and test without Qt
 
@@ -27,6 +39,23 @@ cmake -S src/engine -B build/engine-client -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build/engine-client -j4
 ctest --test-dir build/engine-client --output-on-failure
 ```
+
+For real-engine integration checks, configure with an existing headless binary:
+
+```sh
+cmake -S src/engine -B build/engine-client \
+  -DENGINE_TEST_BINARY="$PWD/build/baseline/gtkbittorrent-engine"
+cmake --build build/engine-client -j4
+ctest --test-dir build/engine-client --output-on-failure
+```
+
+Thirteen HTTP tests cover request encoding, authentication/expiry, errors,
+malformed snapshots, redirects, reverse-proxy paths, timeouts, control requests,
+and binary uploads. A separate real-engine test adds a partial Unicode download,
+starts/stops it, restarts the backend, verifies resumed progress, adds a magnet,
+and checks both file-preserving and file-deleting removal in a disposable profile.
+The standalone CI job runs with address/undefined-behavior sanitizers; release
+builds also exercise the client against the newly built real engine.
 
 Tests launch a C++ probe against a disposable loopback HTTP server. Credentials
 travel through its standard input and are not command-line arguments. Neither
