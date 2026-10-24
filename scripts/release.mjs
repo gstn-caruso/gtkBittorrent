@@ -4,6 +4,7 @@ import {mkdtempSync, readFileSync, readdirSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {legacyHistoryEnd} from './release-history.mjs';
 
 const git = (...args) => execFileSync('git', args, {encoding: 'utf8'}).trim();
 export const expectedAssets = version => [`gtkbittorrent-${version}-ubuntu-26.04-x86_64.tar.gz`, `gtkbittorrent-${version}-sources.tar.gz`, 'SHA256SUMS'];
@@ -39,7 +40,7 @@ async function main() {
       execFileSync('python3', [join(source, 'scripts/package.py'), version], {cwd: source, stdio: 'inherit',
         env: {...process.env, GTKB_RUNTIME: resolve('.deps/prefix'), GTKB_GEMS: resolve('vendor/bundle/ruby/4.0.0')}});
       if (!release) release = await request('/releases', {method: 'POST', body: JSON.stringify({tag_name: tag, name: tag, draft: true,
-        body: `Publicación recuperada para ${tag}.\n\n` + git('log', '--format=* %s (%h)', ...(tags.indexOf(tag) ? [`${tags[tags.indexOf(tag)-1]}..${tag}`] : [tag]))})});
+        body: `Publicación recuperada para ${tag}.\n\n` + git('log', '--format=* %s (%h)', ...(tags.indexOf(tag) ? [`${tags[tags.indexOf(tag)-1]}..${tag}`] : [tag, '--not', legacyHistoryEnd]))})});
       const uploadBase = release.upload_url.replace(/\{.*$/, '');
       // A partial upload is repaired as one coherent set so SHA256SUMS always matches.
       for (const asset of release.assets) if (expectedAssets(version).includes(asset.name)) await request(`/releases/assets/${asset.id}`, {method: 'DELETE'});

@@ -1,6 +1,8 @@
 import {generateNotes as conventional} from '@semantic-release/release-notes-generator';
+import {releaseContext} from './release-history.mjs';
 
 export async function generateNotes(config, context) {
+  context = releaseContext(config, context);
   const types = ['feat', 'fix', 'perf', 'revert', 'docs', 'style', 'refactor', 'test', 'build', 'ci', 'chore'];
   const notes = await conventional({
     preset: 'conventionalcommits',

@@ -131,6 +131,8 @@ historial completo, tags `vX.Y.Z` y `GITHUB_TOKEN`.
 Conventional Commits: cambios incompatibles → major; `feat` → minor;
 cualquier otro commit nuevo → patch, incluso documentación y mantenimiento.
 Las notas incluyen esos cambios. El primer lanzamiento es 1.0.0.
+El historial anterior hasta `890da1136` se conserva en Git, pero se excluye del
+análisis y las notas del MVP Ruby/GTK, incluidos los reintentos de publicación.
 Los títulos de PR y los commits se validan en CI; configura squash merge para
 usar el título del PR y exige el check `verify` en la protección de `main`.
 
@@ -143,9 +145,9 @@ release incompleta, el flujo reconstruye el código de ese tag y repara sus
 artefactos antes de analizar nuevos commits. La cola cubre hasta 100 jobs.
 No se generan commits de `VERSION` o `CHANGELOG.md`.
 
-Para activar la entrega, publica este repositorio en GitHub con rama `main` y
-Actions habilitado. No se requiere un PAT ni un token npm. La publicación real
-necesita un remoto GitHub; las pruebas locales no crean tags ni releases remotos.
+El repositorio está en [gstn-caruso/gtkBittorrent](https://github.com/gstn-caruso/gtkBittorrent).
+Los pushes a `main` ejecutan el flujo de entrega con Actions habilitado. No se
+requiere un PAT ni un token npm. Las pruebas locales no publican tags ni releases.
 
 RSS, buscador integrado, control remoto, Flatpak e inicio automático se reservan
 para una etapa posterior.
