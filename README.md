@@ -31,12 +31,20 @@ guarda un checkpoint y termina la aplicación y su motor.
 - Abre un `.torrent` o pega un magnet. Espera los metadatos, elige destino,
   categoría y prioridades de los archivos, y confirma **Iniciar descarga**.
   Hasta confirmar, el motor solo recupera metadatos.
-- Busca por nombre, filtra por estado o categoría y ordena las columnas con el
-  selector. Ctrl y Shift permiten seleccionar varias transferencias.
-- Las acciones inferiores pausan, reanudan, verifican, cambian de ubicación o
-  eliminan la selección. **Eliminar** conserva los archivos por defecto; el
-  borrado requiere marcar una casilla y confirmar.
-- **Detalles** muestra archivos, trackers, peers y opciones por torrent:
+- Usa **+** para elegir entre abrir un torrent o añadir un magnet. Ctrl+O abre
+  un archivo y Ctrl+L permite pegar un magnet.
+- Busca por nombre con Ctrl+F, filtra por estado o categoría y ordena pulsando
+  las cabeceras de las columnas. Ctrl y Shift permiten seleccionar varias
+  transferencias.
+- Al seleccionar aparecen las acciones en la cabecera: **Pausar** para torrents
+  activos y **Reanudar** para los pausados. El menú de la selección incluye
+  **Propiedades**, **Verificar**, **Cambiar ubicación** y **Eliminar**. Los archivos
+  se conservan por defecto; el borrado requiere marcar una casilla y confirmar.
+- **Mostrar detalles**, o F9, abre un panel lateral con el progreso, las
+  velocidades, los pares y el destino de la selección. Los filtros laterales
+  muestran los contadores por estado y categoría, y las velocidades globales.
+  En ventanas estrechas, la navegación y los detalles se adaptan al espacio.
+- **Propiedades** muestra archivos, trackers, peers y opciones por torrent:
   prioridades de 0 a 7, límites en B/s, categoría y posición de cola desde 0.
   La prioridad 0 omite el archivo. Los archivos de relleno v2 se omiten.
 - **Preferencias** define límites globales y cantidad de transferencias activas.

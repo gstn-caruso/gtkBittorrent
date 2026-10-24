@@ -21,4 +21,13 @@ class TransfersTest < Minitest::Test
     assert_equal ["3"], transfers.list(filter: "error").map { |row| row["id"] }
     assert_equal %w[2 1 3], transfers.list(sort: "progress", descending: true).map { |row| row["id"] }
   end
+
+  def test_filtering_a_snapshot_preserves_the_catalog
+    catalog = Catalog.new.request("list")
+    transfers = GtkBitTorrent::Transfers.new(nil)
+
+    assert_equal ["1"], transfers.select(catalog, filter: "downloading", query: "ubu").map { |row| row["id"] }
+    assert_equal %w[1 2 3 4], catalog.map { |row| row["id"] }
+    assert_equal %w[2 1], transfers.select(catalog, category: "Linux").map { |row| row["id"] }
+  end
 end

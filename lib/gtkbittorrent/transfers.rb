@@ -4,8 +4,11 @@ module GtkBitTorrent
       @engine = engine
     end
 
-    def list(query: "", filter: "all", category: nil, sort: "name", descending: false)
-      rows = @engine.request("list")
+    def list(**options)
+      select(@engine.request("list"), **options)
+    end
+
+    def select(rows, query: "", filter: "all", category: nil, sort: "name", descending: false)
       rows = rows.reject { |row| row["staged"] }
       rows = rows.select { |row| row["name"].downcase.include?(query.downcase) }
       rows = rows.select { |row| row["category"] == category } if category
