@@ -22,7 +22,7 @@ import {analyzeCommits} from '../scripts/release-analyzer.mjs';
     git(['add', '.']); git(['commit', '-m', message]); git(['push', 'origin', 'main']);
   };
   try {
-    git(['init', '--bare', origin], dir);
+    git(['init', '--bare', '--initial-branch=main', origin], dir);
     git(['init', '-b', 'main', repo], dir);
     git(['config', 'user.name', 'Release test']);
     git(['config', 'user.email', 'test@example.invalid']);

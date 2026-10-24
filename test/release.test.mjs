@@ -34,9 +34,15 @@ test('retry detects missing or empty artifacts without allocating a new version'
   assert.deepEqual(missingAssets('1.0.0', assets), ['SHA256SUMS']);
 });
 
-test('semantic-release first release, repeated head and grouped commits with a real local origin', () => {
+for (const defaultBranch of ['master', 'main'])
+{
+test(`semantic-release with Git default branch ${defaultBranch}`, () => {
   const env = {...process.env};
   delete env.NODE_TEST_CONTEXT;
+  env.GIT_CONFIG_COUNT = '1';
+  env.GIT_CONFIG_KEY_0 = 'init.defaultBranch';
+  env.GIT_CONFIG_VALUE_0 = defaultBranch;
   const output = execFileSync(process.execPath, ['test/semantic_fixture.mjs'], {encoding: 'utf8', env});
   assert.ok(output.includes('semantic-release integration: OK'));
 });
+}
