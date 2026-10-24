@@ -37,7 +37,7 @@ async function main() {
     try {
       const source = join(work, 'source');
       git('worktree', 'add', '--detach', source, tag);
-      execFileSync('python3', [join(source, 'scripts/package.py'), version], {cwd: source, stdio: 'inherit',
+      execFileSync('sh', [join(source, 'scripts/prepare-release.sh'), version], {cwd: source, stdio: 'inherit',
         env: {...process.env, GTKB_RUNTIME: resolve('.deps/prefix'), GTKB_GEMS: resolve('vendor/bundle/ruby/4.0.0')}});
       if (!release) release = await request('/releases', {method: 'POST', body: JSON.stringify({tag_name: tag, name: tag, draft: true,
         body: `Publicación recuperada para ${tag}.\n\n` + git('log', '--format=* %s (%h)', ...(tags.indexOf(tag) ? [`${tags[tags.indexOf(tag)-1]}..${tag}`] : [tag, '--not', legacyHistoryEnd]))})});

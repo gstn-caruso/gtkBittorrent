@@ -125,6 +125,9 @@ El intercambio es JSON por línea; [protocolo](docs/protocol.md).
 
 Cada PR y push a `main` ejecuta compilación, tests y validación del paquete.
 Solo el job de publicación tiene `contents: write`. No se publican paquetes npm.
+Ambos jobs instalan las mismas dependencias nativas. La preparación de cada
+release y sus reintentos vuelve a probar el paquete final en Ubuntu limpio antes
+de subirlo a GitHub.
 Usa [semantic-release](https://semantic-release.org/recipes/ci-configurations/github-actions/),
 historial completo, tags `vX.Y.Z` y `GITHUB_TOKEN`.
 
