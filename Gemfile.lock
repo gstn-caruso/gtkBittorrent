@@ -1,0 +1,95 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    adwaita (4.3.9)
+      gtk4 (= 4.3.9)
+      rake
+    atk (4.3.9)
+      glib2 (= 4.3.9)
+      rake
+    cairo (1.18.5)
+      pkg-config (>= 1.2.2)
+      red-colors
+    cairo-gobject (4.3.9)
+      cairo (>= 1.16.2)
+      glib2 (= 4.3.9)
+    fiddle (1.1.8)
+    gdk4 (4.3.9)
+      cairo-gobject (= 4.3.9)
+      gdk_pixbuf2 (= 4.3.9)
+      pango (= 4.3.9)
+      rake
+    gdk_pixbuf2 (4.3.9)
+      gio2 (= 4.3.9)
+      rake
+    gio2 (4.3.9)
+      fiddle
+      gobject-introspection (= 4.3.9)
+    glib2 (4.3.9)
+      native-package-installer (>= 1.0.3)
+      pkg-config (>= 1.3.5)
+    gobject-introspection (4.3.9)
+      glib2 (= 4.3.9)
+    graphene1 (4.3.9)
+      gobject-introspection (= 4.3.9)
+    gsk4 (4.3.9)
+      gdk4 (= 4.3.9)
+      graphene1 (= 4.3.9)
+    gtk4 (4.3.9)
+      atk (= 4.3.9)
+      gdk4 (= 4.3.9)
+      gsk4 (= 4.3.9)
+    json (3.1.0)
+    matrix (0.4.3)
+    minitest (6.0.0)
+      prism (~> 1.5)
+    native-package-installer (1.1.9)
+    pango (4.3.9)
+      cairo-gobject (= 4.3.9)
+      gobject-introspection (= 4.3.9)
+    pkg-config (1.6.6)
+    prism (1.9.0)
+    rake (13.3.1)
+    red-colors (0.5.0)
+      json
+      matrix
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  adwaita (= 4.3.9)
+  gtk4 (= 4.3.9)
+  minitest (= 6.0.0)
+  rake (= 13.3.1)
+
+CHECKSUMS
+  adwaita (4.3.9) sha256=09271d077b9c9d3a3919bde40bc475e58fd31f83b319f4b305bfc4dc086fcee8
+  atk (4.3.9) sha256=f6d43be5dc1546a3a096124c0ec7518c266c225c88a91fd8ac857463beea3469
+  cairo (1.18.5) sha256=e57356141c91748061b10260e185735bd6e2288ab81ab300a6de3adfa270a623
+  cairo-gobject (4.3.9) sha256=f093931812898edd87416691b8e3315c61a0c8a6d531519fbc6c64e97b6d85c8
+  fiddle (1.1.8) sha256=7fa8ee3627271497f3add5503acdbc3f40b32f610fc1cf49634f083ef3f32eee
+  gdk4 (4.3.9) sha256=232b8350ad148bd2a45661cc90638d782fd439c872d8eb866f2c5fbb800c8d4b
+  gdk_pixbuf2 (4.3.9) sha256=1b78f2b21de7d4dcef6b351895d1bc22099a53d987f005d4b09f62b6816b3cbc
+  gio2 (4.3.9) sha256=6ddcbaec05beb20332fcfd1ca598dcf46392541aeb0b5d4b8df2306adffc0acc
+  glib2 (4.3.9) sha256=32c1db447e812e5e34f9e62f1f2103e2cb4a5d0d03217a886b2a2877639549cd
+  gobject-introspection (4.3.9) sha256=509c0e69b99fb171683f28ea3172f82a46950b032f4628986330418771bdd56b
+  graphene1 (4.3.9) sha256=3ebaeb7bcf85244a9db5d7e7ced32493d5d786e7fd8ed840ce2df9d85f2c8c05
+  gsk4 (4.3.9) sha256=8f1f560f1ec08fa2c1a503d468c705ff254db4633ca2d72c93654e2a180b2ea6
+  gtk4 (4.3.9) sha256=3e749542e347ef703e6691552047254612ef54d430b308264e96f330fd3e453b
+  json (3.1.0) sha256=3ce7ccf8fde58960177a3a756c31f292a4c1e1dedee884547096a5b0604e3bd8
+  matrix (0.4.3) sha256=a0d5ab7ddcc1973ff690ab361b67f359acbb16958d1dc072b8b956a286564c5b
+  minitest (6.0.0) sha256=4ca597fc1d735ea18d2b4b98c5fb1d5a6da4a6f35ddf32bd5fa3eded33a453be
+  native-package-installer (1.1.9) sha256=fbb41b6b22750791a4304f0a0aeea3dd837668892117f49c4caf2e8e0f4e792f
+  pango (4.3.9) sha256=1f7b023adec7f3d692d7f6a6c87994231dd597802761a9a42debebe69f677a98
+  pkg-config (1.6.6) sha256=fe84528c7695ee2042d98891dae1d85beb9d2e5f4695395aac52663937fa2e1d
+  prism (1.9.0) sha256=7b530c6a9f92c24300014919c9dcbc055bf4cdf51ec30aed099b06cd6674ef85
+  rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
+  red-colors (0.5.0) sha256=0a33f603d1843035fe467485ba4461022e3b5a2de9a0f0371e7cc0939b99ad19
+
+RUBY VERSION
+  ruby 4.0.7
+
+BUNDLED WITH
+  4.0.20

@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+require_relative "../lib/gtkbittorrent/version"
+if ARGV.include?("--version")
+  puts GtkBitTorrent::VERSION
+  exit
+end
+require_relative "../lib/gtkbittorrent/ui"
+exit GtkBitTorrent::Application.new.run([$PROGRAM_NAME, *ARGV])

@@ -1,0 +1,107 @@
+name: Verify and release
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Conventional Commits
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            printf '%s\n' "$PR_TITLE" | npx --no-install commitlint
+          fi
+          if [ -n "$BASE" ] && [ "$BASE" != 0000000000000000000000000000000000000000 ]; then
+            npx --no-install commitlint --from "$BASE" --to HEAD
+          else
+            git log -1 --format=%B | npx --no-install commitlint
+          fi
+      - run: npm test
+      - run: sh scripts/install-build-deps.sh
+      - uses: actions/cache@v4
+        with:
+          path: .deps
+          key: runtime-ubuntu-26.04-x86_64-${{ hashFiles('scripts/runtime-sources.json', 'scripts/build-runtime.py') }}
+      - name: Private runtime
+        run: python3 scripts/build-runtime.py
+      - name: Gems and engine
+        run: |
+          . .deps/env
+          bundle config set --local path vendor/bundle
+          BUNDLE_FROZEN=true bundle install
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          cmake --build build -j 4
+      - name: Ruby and real local transfers
+        run: |
+          . .deps/env
+          bundle exec rake test
+      - name: GTK under Xvfb and D-Bus
+        run: |
+          . .deps/env
+          dbus-run-session -- xvfb-run -a env GDK_BACKEND=x11 bundle exec ruby test/ui_smoke.rb
+      - name: GTK under headless Wayland
+        run: |
+          . .deps/env
+          sh scripts/test-wayland.sh
+      - name: Build distributable
+        run: python3 scripts/package.py 1.0.0
+      - name: Clean Ubuntu install and relocation
+        run: sh scripts/test-package.sh
+      - name: Preserve runtime permissions and links
+        run: tar -czf verified-runtime.tar.gz .deps/prefix vendor/bundle/ruby/4.0.0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-runtime
+          path: verified-runtime.tar.gz
+          retention-days: 1
+
+  release:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: verify
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    concurrency:
+      group: gtkbittorrent-release-main
+      queue: max
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: sudo apt-get update && sudo apt-get install -y cmake g++ pkg-config libtorrent-rasterbar-dev nlohmann-json3-dev patchelf libglib2.0-bin
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-runtime
+      - name: Extract verified runtime
+        run: tar -xf verified-runtime.tar.gz
+      - name: Publish or repair
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release

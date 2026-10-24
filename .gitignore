@@ -1,0 +1,8 @@
+/build/
+/dist/
+/.deps/
+/.bundle/
+/vendor/
+/node_modules/
+*.log
+__pycache__/
